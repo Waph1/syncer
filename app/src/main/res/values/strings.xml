@@ -1,0 +1,157 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Syncer</string>
+
+    <!-- Data types -->
+    <string name="type_calendar">Calendari</string>
+    <string name="type_tasks">Attività (Google Tasks)</string>
+    <string name="type_notes">Note (Google Keep)</string>
+    <string name="type_contacts">Contatti</string>
+    <string name="type_calendar_format">Un file .ics per ogni calendario</string>
+    <string name="type_tasks_format">Un file todo.txt per ogni elenco</string>
+    <string name="type_notes_format">Un file Markdown (.md) per ogni nota</string>
+    <string name="type_contacts_format">Tutti i contatti in un file .vcf</string>
+
+    <!-- Common actions -->
+    <string name="action_back">Indietro</string>
+    <string name="action_next">Avanti</string>
+    <string name="action_finish">Fine</string>
+    <string name="action_cancel">Annulla</string>
+    <string name="action_ok">OK</string>
+    <string name="action_choose">Scegli</string>
+    <string name="action_change">Cambia</string>
+    <string name="action_confirm">Conferma</string>
+    <string name="action_grant">Concedi</string>
+    <string name="action_authorize">Autorizza</string>
+    <string name="action_open_settings">Apri impostazioni</string>
+    <string name="action_sync_now">Sincronizza ora</string>
+    <string name="action_sync_type">Sincronizza %1$s</string>
+    <string name="action_import_settings">Importa impostazioni…</string>
+    <string name="action_backup_now">Backup ora</string>
+    <string name="action_copy">Copia package e SHA-1</string>
+    <string name="action_restart_setup">Rifai configurazione</string>
+
+    <!-- Folders -->
+    <string name="folder_destination">Cartella di destinazione</string>
+    <string name="folder_not_selected">Nessuna cartella selezionata</string>
+    <string name="folder_no_permission">Accesso perso a %1$s: selezionala di nuovo</string>
+
+    <!-- Type specific options -->
+    <string name="calendar_hint">Vengono esportati i calendari dell\'account sincronizzati su questo telefono (Impostazioni Android › Account › Google › Calendario).</string>
+    <string name="tasks_hint">Richiede l\'autorizzazione a Google Tasks e un client OAuth configurato su Google Cloud (vedi README).</string>
+    <string name="contacts_include_photos">Includi le foto</string>
+    <string name="contacts_include_photos_hint">Miniature dei contatti incorporate nel file .vcf</string>
+    <string name="notes_source">Origine delle note</string>
+    <string name="notes_source_takeout">Export di Google Takeout</string>
+    <string name="notes_source_takeout_hint">Per account Gmail personali: Google non offre un\'API di Keep. Le note vengono convertite dall\'ultimo export Takeout (zip o cartella) che metti nella cartella indicata.</string>
+    <string name="notes_source_api">API di Google Keep</string>
+    <string name="notes_source_api_hint">Solo per account Google Workspace con l\'API Keep abilitata dall\'amministratore. Sincronizzazione automatica.</string>
+    <string name="notes_takeout_folder">Cartella degli export Takeout</string>
+    <string name="notes_takeout_folder_hint">Scarica da takeout.google.com l\'export di \"Keep\" e salva lo zip (o la cartella estratta) qui: a ogni sincronizzazione viene usato l\'export più recente.</string>
+
+    <!-- Sync options -->
+    <string name="sync_on_change">Sincronizza alla modifica</string>
+    <string name="sync_on_change_hint">Calendari e contatti vengono esportati pochi secondi dopo ogni modifica sul telefono (senza servizi in background).</string>
+    <string name="sync_periodic">Sincronizzazione periodica</string>
+    <string name="sync_periodic_hint">Unica opzione per Tasks e Keep, che non notificano le modifiche. Android consente al massimo una esecuzione ogni 15 minuti.</string>
+    <string name="sync_interval">Intervallo</string>
+    <string name="sync_interval_value">Ogni %1$s</string>
+    <string name="interval_minutes">%1$d min</string>
+    <string name="interval_hours">%1$d h</string>
+    <string name="interval_custom">Personalizzato</string>
+    <string name="interval_custom_label">Minuti</string>
+    <string name="interval_custom_hint">Minimo: %1$d min</string>
+    <string name="delete_removed">Elimina i file rimossi</string>
+    <string name="delete_removed_hint">Se un calendario, un elenco o una nota non esiste più, il file esportato viene eliminato. I file non creati da Syncer non vengono mai toccati.</string>
+
+    <!-- Settings backup -->
+    <string name="backup_enabled">Backup delle impostazioni</string>
+    <string name="backup_enabled_hint">A ogni modifica viene salvato un nuovo file syncer-settings_AAAA-MM-GG_hh-mm-ss.json; i backup precedenti vengono conservati.</string>
+    <string name="backup_folder">Cartella dei backup</string>
+    <string name="backup_last">Ultimo backup %1$s: %2$s</string>
+    <string name="backup_error">Ultimo backup non riuscito: %1$s</string>
+    <string name="import_from_settings_hint">L\'importazione riapre la configurazione guidata con i valori del file, per confermare account e cartelle.</string>
+
+    <!-- Access -->
+    <string name="permission_calendar">Accesso al calendario</string>
+    <string name="permission_contacts">Accesso ai contatti</string>
+    <string name="permission_notifications">Notifiche (avvisi di errore)</string>
+    <string name="status_granted">Concesso</string>
+    <string name="status_not_granted">Non concesso</string>
+    <string name="status_authorized">Autorizzato</string>
+    <string name="status_checking">Verifica in corso…</string>
+    <string name="status_needs_consent">Serve il tuo consenso</string>
+    <string name="status_unknown">Non verificato</string>
+    <string name="auth_tasks">Google Tasks</string>
+    <string name="auth_keep">Google Keep (Workspace)</string>
+    <string name="auth_hint">L\'autorizzazione usa l\'account del telefono: nessuna password viene salvata. Se compare \"App non registrata\", configura il client OAuth su Google Cloud con package e SHA-1 indicati in Impostazioni › Info.</string>
+    <string name="battery_title">Ottimizzazione batteria</string>
+    <string name="battery_ok">Disattivata per Syncer</string>
+    <string name="battery_hint">Facoltativo: disattivarla rende le sincronizzazioni periodiche più puntuali.</string>
+
+    <!-- Setup -->
+    <string name="setup_step_counter">Passo %1$d di %2$d</string>
+    <string name="setup_step_import">Benvenuto</string>
+    <string name="setup_step_account">Account Google</string>
+    <string name="setup_step_data">Dati e cartelle</string>
+    <string name="setup_step_sync">Quando sincronizzare</string>
+    <string name="setup_step_backup">Backup impostazioni</string>
+    <string name="setup_step_access">Permessi e autorizzazioni</string>
+    <string name="setup_welcome_title">Benvenuto in Syncer</string>
+    <string name="setup_welcome_body">Syncer copia i dati del tuo account Google in cartelle del telefono a tua scelta, in formati aperti: calendari in .ics, attività in todo.txt, note di Keep in Markdown e contatti in .vcf.</string>
+    <string name="setup_import_title">Hai già usato Syncer?</string>
+    <string name="setup_import_body">Importa un file di backup delle impostazioni (syncer-settings_….json): i passaggi successivi saranno già compilati.</string>
+    <string name="setup_import_skip">Altrimenti premi Avanti per configurare tutto da zero.</string>
+    <string name="setup_import_done">Impostazioni importate</string>
+    <string name="setup_import_account">Account: %1$s</string>
+    <string name="setup_import_types">Dati: %1$s</string>
+    <string name="setup_import_folders_warning">Alcune cartelle vanno selezionate di nuovo: i permessi sulle cartelle non si trasferiscono tra installazioni.</string>
+    <string name="setup_account_intro">Scegli l\'account Google di cui sincronizzare i dati. Deve essere già aggiunto al telefono.</string>
+    <string name="setup_data_intro">Attiva i dati da sincronizzare e scegli una cartella per ciascuno. Usa cartelle dedicate: Syncer sovrascrive i file che esporta.</string>
+    <string name="setup_data_incomplete">Attiva almeno un tipo di dato e scegli una cartella per ogni tipo attivo.</string>
+    <string name="setup_sync_intro">Scegli quando aggiornare i file esportati. Puoi sempre avviare una sincronizzazione manuale dalla schermata principale.</string>
+    <string name="setup_backup_intro">Facoltativo: salva una copia delle impostazioni in una cartella a ogni modifica, per poterle importare in futuro (per esempio su un nuovo telefono).</string>
+    <string name="setup_access_intro">Concedi i permessi necessari. Puoi farlo anche più tardi dalle impostazioni.</string>
+    <string name="account_none">Nessun account selezionato</string>
+    <string name="account_confirm_hint">Conferma l\'account importato con il selettore di sistema</string>
+    <string name="account_hint">Calendari e contatti devono essere sincronizzati con questo account sul telefono.</string>
+
+    <!-- Home -->
+    <string name="sync_running">Sincronizzazione…</string>
+    <string name="home_never_synced">Mai sincronizzato</string>
+    <string name="home_last_sync_ok">Ultima sincronizzazione %1$s</string>
+    <string name="home_last_sync_failed">Sincronizzazione non riuscita %1$s</string>
+    <string name="home_last_success">Ultima riuscita: %1$s</string>
+    <string name="home_nothing_enabled">Nessun dato attivo: abilitali nelle impostazioni.</string>
+    <string name="home_schedule_on_change">Alla modifica: %1$s</string>
+    <string name="home_schedule_periodic">Ogni %1$s: tutto</string>
+    <string name="home_schedule_manual">Solo sincronizzazione manuale</string>
+
+    <!-- Settings -->
+    <string name="settings_title">Impostazioni</string>
+    <string name="section_account">Account</string>
+    <string name="section_data">Dati e cartelle</string>
+    <string name="section_sync">Sincronizzazione</string>
+    <string name="section_backup">Backup e importazione</string>
+    <string name="section_access">Permessi e autorizzazioni</string>
+    <string name="section_info">Info</string>
+    <string name="info_version">Versione</string>
+    <string name="info_package">Nome del package</string>
+    <string name="info_sha1">Impronta SHA-1 del certificato</string>
+    <string name="info_cloud_hint">Servono per creare il client OAuth \"Android\" su Google Cloud Console, necessario per Google Tasks (e per l\'API di Keep).</string>
+    <string name="info_copied">Copiato negli appunti</string>
+
+    <!-- Notifications -->
+    <string name="notification_channel_problems">Problemi di sincronizzazione</string>
+    <string name="notification_channel_problems_description">Avvisi quando una sincronizzazione richiede un tuo intervento</string>
+    <string name="notification_title_auth">%1$s: autorizzazione richiesta</string>
+    <string name="notification_title_permission">%1$s: permesso mancante</string>
+    <string name="notification_title_folder">%1$s: cartella non accessibile</string>
+    <string name="notification_title_error">%1$s: sincronizzazione non riuscita</string>
+
+    <plurals name="interval_days">
+        <item quantity="one">%1$d giorno</item>
+        <item quantity="many">%1$d giorni</item>
+        <item quantity="other">%1$d giorni</item>
+    </plurals>
+</resources>

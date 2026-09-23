@@ -10,6 +10,7 @@ import io.github.waph1.syncer.settings.FolderTarget
 import io.github.waph1.syncer.settings.NotesSource
 import io.github.waph1.syncer.settings.SettingsCodec
 import io.github.waph1.syncer.settings.SyncType
+import io.github.waph1.syncer.source.CalendarSource
 import io.github.waph1.syncer.testing.FakeCalendarProvider
 import io.github.waph1.syncer.testing.FakeContactsProvider
 import io.github.waph1.syncer.testing.FakeDocumentsProvider
@@ -66,17 +67,22 @@ class SyncPipelineTest {
 
     private fun dir(path: String) = File(FakeDocumentsProvider.root, path)
 
+    private fun event(id: Long, calendarId: Long, title: String) = mapOf(
+        "_id" to id, "calendar_id" to calendarId, "_sync_id" to "ev$id", "title" to title, "dtstart" to 1_705_309_200_000L,
+        "dtend" to 1_705_312_800_000L, "eventTimezone" to "Europe/Rome", "allDay" to 0, "eventStatus" to 1, "deleted" to 0,
+    )
+
+    private fun calendar(id: Long, name: String, sync: Int?) = mapOf(
+        "_id" to id, "calendar_displayName" to name, "account_name" to account, "calendar_timezone" to "Europe/Rome",
+        "sync_events" to sync, "_sync_id" to "cal$id@group.calendar.google.com", "visible" to 0,
+    )
+
     private fun calendarRows(title: String = "Riunione") {
         FakeCalendarProvider.tables["calendars"] = listOf(
-            mapOf("_id" to 1L, "calendar_displayName" to "Lavoro", "account_name" to account, "calendar_timezone" to "Europe/Rome", "sync_events" to 1),
-            mapOf("_id" to 2L, "calendar_displayName" to "Non sincronizzato", "account_name" to account, "sync_events" to 0),
+            calendar(1, "Lavoro", 1),
+            calendar(2, "Non sincronizzato", 0),
         )
-        FakeCalendarProvider.tables["events"] = listOf(
-            mapOf(
-                "_id" to 10L, "calendar_id" to 1L, "_sync_id" to "ev1", "title" to title, "dtstart" to 1_705_309_200_000L,
-                "dtend" to 1_705_312_800_000L, "eventTimezone" to "Europe/Rome", "allDay" to 0, "eventStatus" to 1, "deleted" to 0,
-            ),
-        )
+        FakeCalendarProvider.tables["events"] = listOf(event(10, 1, title))
         FakeCalendarProvider.tables["reminders"] = listOf(mapOf("event_id" to 10L, "minutes" to 15, "method" to 1))
     }
 
@@ -87,20 +93,63 @@ class SyncPipelineTest {
 
         val first = sync(SyncType.CALENDAR)
         assertTrue(first.message, first.ok)
-        assertTrue(first.message, first.message.startsWith("1 calendari, 1 eventi (1 non sincronizzati"))
+        assertTrue(first.message, first.message.startsWith("1 calendari, 1 eventi — 1 file aggiornati"))
+        // Calendars whose sync is off on the device are named, so the user can fix them.
+        assertTrue(first.message, first.message.endsWith("Non sincronizzati su questo telefono (Impostazioni › Dati e cartelle › Calendari): Non sincronizzato"))
+        assertEquals(listOf("Lavoro.ics"), dir("cal").list()!!.toList())
         val ics = File(dir("cal"), "Lavoro.ics")
         val text = ics.readText()
-        assertTrue(text.contains("UID:ev1@google.com\r\n"))
+        assertTrue(text.contains("UID:ev10@google.com\r\n"))
         assertTrue(text.contains("DTSTART;TZID=Europe/Rome:20240115T100000\r\n"))
         assertTrue(text.contains("TRIGGER:-PT15M\r\n"))
 
         val second = sync(SyncType.CALENDAR)
-        assertTrue(second.message, second.message.endsWith("nessun file modificato"))
+        assertTrue(second.message, second.message.contains("nessun file modificato"))
         assertEquals(text, ics.readText()) // DTSTAMP not rewritten either
 
         calendarRows(title = "Riunione spostata")
-        assertTrue(sync(SyncType.CALENDAR).message.endsWith("1 file aggiornati"))
+        assertTrue(sync(SyncType.CALENDAR).message.contains("— 1 file aggiornati"))
         assertTrue(ics.readText().contains("SUMMARY:Riunione spostata"))
+    }
+
+    @Test
+    fun calendarSelectionHonoursSyncStateEventsAndExclusions() {
+        FakeCalendarProvider.tables["calendars"] = listOf(
+            calendar(1, "Lavoro", 1),
+            calendar(2, "Compleanni", 0), // sync off, but events still on the device: exported
+            calendar(3, "Festivita", 0), // sync off, no events: skipped, previous file kept
+            calendar(4, "Stato ignoto", null),
+            calendar(5, "Escluso", 1),
+        )
+        FakeCalendarProvider.tables["events"] = listOf(event(10, 1, "A"), event(20, 2, "B"), event(40, 4, "D"), event(50, 5, "E"))
+        val folder = FakeDocumentsProvider.treeUri("cal").toString()
+        configure { it.copy(calendar = FolderTarget(true, folder)) }
+        sync(SyncType.CALENDAR)
+        assertEquals(setOf("Compleanni.ics", "Escluso.ics", "Lavoro.ics", "Stato ignoto.ics"), dir("cal").list()!!.toSet())
+
+        // A previously exported calendar whose events disappear from the device is kept as is.
+        File(dir("cal"), "Festivita.ics").writeText("vecchio export")
+        container.settings.update { it.copy(excludedCalendars = setOf("cal5@group.calendar.google.com")) }
+        val status = sync(SyncType.CALENDAR)
+        assertTrue(status.message, status.ok)
+        assertTrue(status.message, status.message.startsWith("3 calendari, 3 eventi"))
+        assertTrue(status.message, status.message.contains("Non sincronizzati su questo telefono (Impostazioni › Dati e cartelle › Calendari): Festivita"))
+        assertTrue(status.message, status.message.endsWith("Esclusi dall'esportazione: 1"))
+        // The excluded calendar's export is removed; the user's own file is untouched.
+        assertEquals(setOf("Compleanni.ics", "Festivita.ics", "Lavoro.ics", "Stato ignoto.ics"), dir("cal").list()!!.toSet())
+        assertEquals("vecchio export", File(dir("cal"), "Festivita.ics").readText())
+    }
+
+    @Test
+    fun enablingSyncUpdatesTheCalendarProvider() {
+        FakeCalendarProvider.tables["calendars"] = listOf(calendar(3, "Festivita", 0))
+        val source = CalendarSource(app.contentResolver)
+        assertEquals(false, source.calendars(account).single().syncEvents)
+        assertTrue(source.enableSync(3, account))
+        val updated = source.calendars(account).single()
+        assertEquals(true, updated.syncEvents)
+        assertEquals("cal3@group.calendar.google.com", updated.key)
+        assertFalse(updated.visible)
     }
 
     @Test

@@ -101,7 +101,7 @@ L'autorizzazione usa l'account già presente sul telefono tramite Google Play se
 
 ## Installare l'APK pronto
 
-Nella cartella [`apk/`](apk/) c'è `Syncer-1.0.0.apk`, già compilato e firmato: copialo sul
+Nella cartella [`apk/`](apk/) c'è `Syncer-1.1.0.apk`, già compilato e firmato: copialo sul
 telefono e aprilo (Android chiederà di consentire l'installazione da quella app). Per Google Tasks
 registra su Google Cloud (vedi la sezione sopra) l'impronta del suo certificato:
 
@@ -162,7 +162,12 @@ per avere un APK con SHA-1 stabile aggiungi questi *secrets* al repository e usa
 ricorrenze (`RRULE`, `RDATE`, `EXDATE`), istanze modificate (`RECURRENCE-ID`), istanze annullate
 come `EXDATE`, eventi di tutto il giorno come date, partecipanti, organizzatore, stato,
 disponibilità, visibilità e promemoria (`VALARM`). Righe piegate a 75 byte, fine riga CRLF.
-Sono esportati i calendari dell'account con la sincronizzazione attiva sul telefono.
+In *Impostazioni › Dati e cartelle › Calendari* trovi l'elenco dei calendari dell'account con il
+loro stato sul telefono (sincronizzazione Android attiva o no, numero di eventi presenti): puoi
+escluderne alcuni dall'esportazione e, per quelli con la sincronizzazione Android disattivata,
+attivarla con *Attiva sincronizzazione* (Android scarica così gli eventi sul telefono). La
+visibilità nell'app Calendar non conta: anche i calendari nascosti vengono esportati. Se un
+calendario non ha eventi sul telefono, il suo file esportato in precedenza viene mantenuto.
 
 **Attività (`<elenco>.todo.txt`)** — una riga per attività, prima quelle da fare (nell'ordine di
 Google Tasks, con le sotto-attività subito dopo la principale), poi le completate:
@@ -223,8 +228,8 @@ un'importazione la configurazione guidata ti chiede di confermare le cartelle da
 
 - Keep per account personali solo tramite export Takeout (vedi sopra).
 - Google Tasks e Keep non notificano le modifiche: aggiornamento periodico, minimo 15 minuti.
-- I calendari esportati contengono gli eventi presenti sul telefono, cioè quelli sincronizzati
-  dall'app/servizio Google Calendar di Android.
+- I calendari esportati contengono gli eventi presenti sul telefono, cioè quelli scaricati dalla
+  sincronizzazione Google di Android (vedi l'elenco in *Impostazioni › Dati e cartelle › Calendari*).
 - Le foto dei contatti sono le miniature salvate sul telefono.
 - Esportazione a senso unico: modificare i file non modifica i dati su Google.
 

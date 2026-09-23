@@ -67,6 +67,15 @@ class ManagedFolder(
     fun put(name: String, text: String, hashSource: String = text) =
         put(name, text.toByteArray(Charsets.UTF_8), hashSource.toByteArray(Charsets.UTF_8))
 
+    /**
+     * Keeps a previously exported file as it is, without rewriting it (e.g. a calendar whose
+     * events are temporarily not on the device), so that [finish] does not delete it.
+     */
+    fun keep(name: String) {
+        val entry = existing[name.lowercase(Locale.ROOT)] ?: return
+        previous[entry.name]?.let { current[entry.name] = it }
+    }
+
     fun finish(): Stats {
         var deleted = 0
         val kept = LinkedHashMap(current)

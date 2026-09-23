@@ -136,6 +136,22 @@ class FakeDocumentsProvider : ContentProvider() {
 
 /** CalendarContract provider answering from in-memory rows keyed by table name. */
 class FakeCalendarProvider : ReadOnlyProvider() {
+    /** Supports updating one calendar by id (content://com.android.calendar/calendars/<id>). */
+    override fun update(uri: Uri, values: ContentValues?, selection: String?, selectionArgs: Array<out String>?): Int {
+        if (uri.pathSegments.firstOrNull() != "calendars" || values == null) return 0
+        val id = uri.lastPathSegment?.toLongOrNull() ?: return 0
+        var updated = 0
+        tables["calendars"] = tables["calendars"].orEmpty().map { row ->
+            if (row["_id"] == id) {
+                updated++
+                row + values.keySet().associateWith { values.get(it) }
+            } else {
+                row
+            }
+        }
+        return updated
+    }
+
     override fun query(uri: Uri, projection: Array<out String>?, selection: String?, args: Array<out String>?, sort: String?): Cursor {
         val table = uri.pathSegments.firstOrNull().orEmpty()
         var rows = tables[table].orEmpty()

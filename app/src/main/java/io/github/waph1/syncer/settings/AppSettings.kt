@@ -30,6 +30,8 @@ data class AppSettings(
     /** Google account (e-mail) whose data is exported. */
     val accountName: String? = null,
     val calendar: FolderTarget = FolderTarget(),
+    /** Keys ([io.github.waph1.syncer.source.CalendarSource.CalendarRef.key]) of calendars not to export. */
+    val excludedCalendars: Set<String> = emptySet(),
     val tasks: FolderTarget = FolderTarget(),
     val notes: FolderTarget = FolderTarget(),
     val contacts: FolderTarget = FolderTarget(),

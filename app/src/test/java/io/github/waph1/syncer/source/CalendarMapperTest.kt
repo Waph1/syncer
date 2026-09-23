@@ -11,7 +11,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class CalendarMapperTest {
-    private val calendar = CalendarSource.CalendarRef(7, "Lavoro", "Europe/Rome", null, true)
+    private val calendar = CalendarSource.CalendarRef(7, "work@group.calendar.google.com", "Lavoro", "Europe/Rome", null, true)
 
     private fun row(
         id: Long,

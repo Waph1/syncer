@@ -1,7 +1,12 @@
 package io.github.waph1.syncer.source
 
+import android.accounts.Account
 import android.content.ContentResolver
+import android.content.ContentUris
+import android.content.ContentValues
 import android.database.Cursor
+import android.os.Bundle
+import android.provider.CalendarContract
 import android.provider.CalendarContract.Attendees
 import android.provider.CalendarContract.Calendars
 import android.provider.CalendarContract.Events
@@ -21,7 +26,20 @@ import java.util.Locale
  */
 class CalendarSource(private val resolver: ContentResolver) {
 
-    data class CalendarRef(val id: Long, val name: String, val timeZone: String?, val color: Int?, val syncEnabled: Boolean)
+    data class CalendarRef(
+        val id: Long,
+        /** Stable across devices (the Google calendar id): used to remember excluded calendars. */
+        val key: String,
+        val name: String,
+        val timeZone: String?,
+        val color: Int?,
+        /**
+         * Calendars.SYNC_EVENTS: whether Android downloads this calendar's events to the device.
+         * Null when the provider leaves it unset.
+         */
+        val syncEvents: Boolean?,
+        val visible: Boolean = true,
+    )
 
     fun calendars(account: String): List<CalendarRef> {
         val projection = arrayOf(
@@ -32,6 +50,8 @@ class CalendarSource(private val resolver: ContentResolver) {
             Calendars.CALENDAR_TIME_ZONE,
             Calendars.CALENDAR_COLOR,
             Calendars.SYNC_EVENTS,
+            Calendars._SYNC_ID,
+            Calendars.VISIBLE,
         )
         val result = mutableListOf<CalendarRef>()
         resolver.query(
@@ -40,16 +60,51 @@ class CalendarSource(private val resolver: ContentResolver) {
         )?.use { c ->
             while (c.moveToNext()) {
                 val name = c.str(1) ?: c.str(2) ?: c.str(3) ?: "Calendario ${c.getLong(0)}"
+                val id = c.getLong(0)
                 result += CalendarRef(
-                    id = c.getLong(0),
+                    id = id,
+                    key = c.str(7) ?: c.str(3) ?: c.str(2) ?: "id:$id",
                     name = name,
                     timeZone = c.str(4),
-                    color = if (c.isNull(5)) null else c.getInt(5),
-                    syncEnabled = !c.isNull(6) && c.getInt(6) == 1,
+                    color = c.intOrNull(5),
+                    syncEvents = c.intOrNull(6)?.let { it == 1 },
+                    visible = c.intOrNull(8) != 0,
                 )
             }
         }
         return result.sortedBy { it.name.lowercase(Locale.ROOT) }
+    }
+
+    /** Number of (non deleted) events stored on the device for each calendar. */
+    fun eventCounts(calendarIds: List<Long>): Map<Long, Int> {
+        val counts = mutableMapOf<Long, Int>()
+        for (chunk in calendarIds.chunked(CHUNK)) {
+            resolver.query(
+                Events.CONTENT_URI, arrayOf(Events.CALENDAR_ID),
+                inClause(Events.CALENDAR_ID, chunk) + " AND ${Events.DELETED}=0", null, null,
+            )?.use { c ->
+                while (c.moveToNext()) counts.merge(c.getLong(0), 1, Int::plus)
+            }
+        }
+        return counts
+    }
+
+    /**
+     * Turns on Android's sync for a calendar (the same switch as "Sync" in the Google Calendar
+     * app), so that its events are downloaded to the device. Requires WRITE_CALENDAR; events are
+     * not modified.
+     */
+    fun enableSync(calendarId: Long, account: String): Boolean {
+        val values = ContentValues().apply { put(Calendars.SYNC_EVENTS, 1) }
+        val updated = resolver.update(ContentUris.withAppendedId(Calendars.CONTENT_URI, calendarId), values, null, null)
+        runCatching {
+            val extras = Bundle().apply {
+                putBoolean(ContentResolver.SYNC_EXTRAS_MANUAL, true)
+                putBoolean(ContentResolver.SYNC_EXTRAS_EXPEDITED, true)
+            }
+            ContentResolver.requestSync(Account(account, GOOGLE_ACCOUNT_TYPE), CalendarContract.AUTHORITY, extras)
+        }
+        return updated > 0
     }
 
     fun read(calendar: CalendarRef): IcsCalendar {

@@ -9,6 +9,7 @@ import io.github.waph1.syncer.appContainer
 import io.github.waph1.syncer.settings.AppSettings
 import io.github.waph1.syncer.settings.SyncType
 import io.github.waph1.syncer.source.AuthorizationRequiredException
+import io.github.waph1.syncer.source.CalendarSource
 import io.github.waph1.syncer.sync.StatusSnapshot
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.Channel
@@ -19,6 +20,9 @@ import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+
+/** A calendar of the account as stored on the device, with its number of events. */
+data class CalendarStatus(val ref: CalendarSource.CalendarRef, val events: Int)
 
 /** Result of checking access to a Google API scope. */
 sealed interface AuthState {
@@ -42,6 +46,10 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
 
     private val authStates = MutableStateFlow<Map<String, AuthState>>(emptyMap())
     val auth: StateFlow<Map<String, AuthState>> = authStates.asStateFlow()
+
+    private val calendarState = MutableStateFlow<List<CalendarStatus>?>(null)
+    /** Calendars of the account on the device; null while loading or without permission. */
+    val calendars: StateFlow<List<CalendarStatus>?> = calendarState.asStateFlow()
 
     private val messageChannel = Channel<String>(Channel.BUFFERED)
     val messages = messageChannel.receiveAsFlow()
@@ -74,6 +82,29 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     fun backupNow() = viewModelScope.launch {
         val error = container.backupNow()
         message(error?.let { "Backup non riuscito: $it" } ?: "Backup delle impostazioni salvato")
+    }
+
+    fun refreshCalendars(account: String) = viewModelScope.launch {
+        calendarState.value = withContext(Dispatchers.IO) {
+            runCatching {
+                val source = CalendarSource(getApplication<Application>().contentResolver)
+                val refs = source.calendars(account)
+                val counts = source.eventCounts(refs.map { it.id })
+                refs.map { CalendarStatus(it, counts[it.id] ?: 0) }
+            }.getOrNull()
+        }
+    }
+
+    fun enableCalendarSync(account: String, calendar: CalendarSource.CalendarRef) = viewModelScope.launch {
+        val ok = withContext(Dispatchers.IO) {
+            runCatching { CalendarSource(getApplication<Application>().contentResolver).enableSync(calendar.id, account) }
+                .getOrDefault(false)
+        }
+        message(
+            if (ok) "Sincronizzazione attivata per \"${calendar.name}\": Android scaricherà gli eventi a breve"
+            else "Impossibile attivare la sincronizzazione di \"${calendar.name}\"",
+        )
+        refreshCalendars(account)
     }
 
     /** Checks (without UI) whether a token for [scope] can be obtained for [account]. */

@@ -37,7 +37,17 @@
     <string name="folder_no_permission">Accesso perso a %1$s: selezionala di nuovo</string>
 
     <!-- Type specific options -->
-    <string name="calendar_hint">Vengono esportati i calendari dell\'account sincronizzati su questo telefono (Impostazioni Android › Account › Google › Calendario).</string>
+    <string name="calendar_hint">Un file .ics per ogni calendario selezionato qui sotto. La visibilità nell\'app Calendar non conta: anche i calendari nascosti vengono esportati.</string>
+    <string name="calendars_title">Calendari da esportare</string>
+    <string name="calendars_loading">Caricamento dei calendari…</string>
+    <string name="calendars_none">Nessun calendario di %1$s su questo telefono: attiva la sincronizzazione del Calendario in Impostazioni Android › Account › Google.</string>
+    <string name="calendars_need_permission">Concedi l\'accesso al calendario per vedere i calendari dell\'account.</string>
+    <string name="calendars_hint">Android scarica sul telefono solo gli eventi dei calendari con la sincronizzazione attiva. \"Attiva sincronizzazione\" accende quella di Android per il calendario (serve il permesso di modifica del calendario, ma nessun evento viene modificato); gli eventi arrivano dopo qualche istante e vengono esportati in automatico.</string>
+    <string name="calendar_sync_on">Sincronizzato</string>
+    <string name="calendar_sync_off">Sincronizzazione Android disattivata</string>
+    <string name="calendar_sync_unknown">Stato di sincronizzazione sconosciuto</string>
+    <string name="calendar_hidden">nascosto</string>
+    <string name="action_enable_sync">Attiva sincronizzazione</string>
     <string name="tasks_hint">Richiede l\'autorizzazione a Google Tasks e un client OAuth configurato su Google Cloud (vedi README).</string>
     <string name="contacts_include_photos">Includi le foto</string>
     <string name="contacts_include_photos_hint">Miniature dei contatti incorporate nel file .vcf</string>
@@ -149,6 +159,11 @@
     <string name="notification_title_folder">%1$s: cartella non accessibile</string>
     <string name="notification_title_error">%1$s: sincronizzazione non riuscita</string>
 
+    <plurals name="calendar_events_on_device">
+        <item quantity="one">%1$d evento sul telefono</item>
+        <item quantity="many">%1$d eventi sul telefono</item>
+        <item quantity="other">%1$d eventi sul telefono</item>
+    </plurals>
     <plurals name="interval_days">
         <item quantity="one">%1$d giorno</item>
         <item quantity="many">%1$d giorni</item>

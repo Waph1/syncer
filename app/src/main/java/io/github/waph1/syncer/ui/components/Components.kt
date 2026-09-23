@@ -174,6 +174,7 @@ fun TargetsEditor(
     settings: AppSettings,
     onChange: ((AppSettings) -> AppSettings) -> Unit,
     pickFolder: (target: String, current: String?) -> Unit,
+    calendarContent: (@Composable () -> Unit)? = null,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         for (type in SyncType.entries) {
@@ -205,7 +206,10 @@ fun TargetsEditor(
                                 onCheckedChange = { on -> onChange { it.copy(contactsIncludePhotos = on) } },
                             )
                             SyncType.TASKS -> HintText(stringResource(R.string.tasks_hint))
-                            SyncType.CALENDAR -> HintText(stringResource(R.string.calendar_hint))
+                            SyncType.CALENDAR -> {
+                                HintText(stringResource(R.string.calendar_hint))
+                                calendarContent?.invoke()
+                            }
                         }
                     }
                 }

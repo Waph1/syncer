@@ -89,27 +89,40 @@ class SyncEngine(
         val folder = SafFolder.of(context, folderUri)
         val managed = { key: String, target: SafFolder -> ManagedFolder(target, manifest(key), s.deleteRemovedFiles).begin() }
         return when (type) {
-            SyncType.CALENDAR -> syncCalendars(account, managed("calendar", folder))
+            SyncType.CALENDAR -> syncCalendars(account, s.excludedCalendars, managed("calendar", folder))
             SyncType.CONTACTS -> syncContacts(account, s.contactsIncludePhotos, managed("contacts", folder))
             SyncType.TASKS -> syncTasks(account, managed("tasks", folder))
             SyncType.NOTES -> syncNotes(account, s, force, folder, managed)
         }
     }
 
-    private fun syncCalendars(account: String, out: ManagedFolder): String {
+    private fun syncCalendars(account: String, excluded: Set<String>, out: ManagedFolder): String {
         requirePermission(Manifest.permission.READ_CALENDAR, "calendario")
         val source = CalendarSource(context.contentResolver)
         val all = source.calendars(account)
-        val active = all.filter { it.syncEnabled }
-        if (active.isEmpty()) {
+        val selected = all.filter { it.key !in excluded }
+        val counts = source.eventCounts(selected.map { it.id })
+        // Android keeps no events on the device for calendars whose sync is off: exporting them
+        // would produce empty files, so their previous export (if any) is kept as it is.
+        val (exportable, notOnDevice) = selected.partition { it.syncEvents != false || (counts[it.id] ?: 0) > 0 }
+        if (exportable.isEmpty()) {
             throw SyncProblem(
                 Problem.CONFIGURATION,
-                "Nessun calendario sincronizzato per $account: attiva la sincronizzazione del Calendario nelle impostazioni Account di Android",
+                if (all.isEmpty()) {
+                    "Nessun calendario trovato per $account: attiva la sincronizzazione del Calendario nelle impostazioni Account di Android"
+                } else {
+                    "Nessun calendario selezionato è sincronizzato su questo telefono: controlla Impostazioni › Dati e cartelle › Calendari"
+                },
             )
         }
         val writer = IcsWriter()
         var events = 0
-        for ((calendar, fileName) in FileNames.assignUnique(active, ".ics", { it.name })) {
+        // Names are assigned over all selected calendars, so they stay stable when one drops out.
+        for ((calendar, fileName) in FileNames.assignUnique(selected, ".ics", { it.name })) {
+            if (calendar in notOnDevice) {
+                out.keep(fileName)
+                continue
+            }
             val ics = source.read(calendar)
             events += ics.events.size
             val text = writer.write(ics, Instant.now())
@@ -117,9 +130,15 @@ class SyncEngine(
             out.put(fileName, text, hashSource = text.lineSequence().filterNot { it.startsWith("DTSTAMP:") }.joinToString("\n"))
         }
         val stats = out.finish()
-        val skipped = all.size - active.size
-        return "${active.size} calendari, $events eventi" +
-            (if (skipped > 0) " ($skipped non sincronizzati sul dispositivo, ignorati)" else "") + describe(stats)
+        return buildString {
+            append("${exportable.size} calendari, $events eventi").append(describe(stats))
+            if (notOnDevice.isNotEmpty()) {
+                append("\nNon sincronizzati su questo telefono (Impostazioni › Dati e cartelle › Calendari): ")
+                append(notOnDevice.joinToString(", ") { it.name })
+            }
+            val excludedCount = all.size - selected.size
+            if (excludedCount > 0) append("\nEsclusi dall'esportazione: $excludedCount")
+        }
     }
 
     private fun syncContacts(account: String, includePhotos: Boolean, out: ManagedFolder): String {

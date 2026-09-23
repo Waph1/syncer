@@ -54,6 +54,7 @@ import io.github.waph1.syncer.storage.SafFolder
 import io.github.waph1.syncer.ui.MainViewModel
 import io.github.waph1.syncer.ui.components.AccessEditor
 import io.github.waph1.syncer.ui.components.BackupEditor
+import io.github.waph1.syncer.ui.components.CalendarSelection
 import io.github.waph1.syncer.ui.components.HintText
 import io.github.waph1.syncer.ui.components.SyncOptionsEditor
 import io.github.waph1.syncer.ui.components.TargetsEditor
@@ -190,7 +191,7 @@ fun SetupScreen(vm: MainViewModel, onCancel: (() -> Unit)?, onFinished: () -> Un
                 Step.DATA -> {
                     HintText(stringResource(R.string.setup_data_intro))
                     Spacer(Modifier.height(8.dp))
-                    TargetsEditor(draft, vm::editDraft, pickFolder)
+                    TargetsEditor(draft, vm::editDraft, pickFolder) { CalendarSelection(vm, draft, vm::editDraft) }
                     if (!dataOk) {
                         Spacer(Modifier.height(8.dp))
                         Text(

@@ -99,6 +99,19 @@ L'autorizzazione usa l'account già presente sul telefono tramite Google Play se
 > Lo SHA-1 dipende dalla chiave con cui è firmato l'APK: se reinstalli un APK firmato con
 > un'altra chiave (per esempio un debug compilato su un altro PC), va aggiunto anche quello.
 
+## Installare l'APK pronto
+
+Nella cartella [`apk/`](apk/) c'è `Syncer-1.0.0.apk`, già compilato e firmato: copialo sul
+telefono e aprilo (Android chiederà di consentire l'installazione da quella app). Per Google Tasks
+registra su Google Cloud (vedi la sezione sopra) l'impronta del suo certificato:
+
+```
+SHA-1: F3:06:6B:4F:94:DC:84:7C:8B:37:99:02:66:85:9C:F4:40:02:70:48
+```
+
+Un APK compilato da te con un'altra chiave non può aggiornare questo senza disinstallarlo prima
+(le impostazioni si recuperano con il backup/importazione) e ha uno SHA-1 diverso.
+
 ## Compilare e installare
 
 Requisiti: JDK 17 o superiore, Android SDK (o semplicemente Android Studio recente).

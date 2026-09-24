@@ -12,17 +12,33 @@ import android.util.Log
 import androidx.work.Configuration
 import androidx.work.testing.SynchronousExecutor
 import androidx.work.testing.WorkManagerTestInitHelper
+import io.github.waph1.syncer.AppContainer
 import io.github.waph1.syncer.SyncerApp
+import io.github.waph1.syncer.format.Kdbx
+import io.github.waph1.syncer.security.SecretStore
 import java.io.File
 
-/** Application for Robolectric tests: a synchronous test WorkManager instead of the real one. */
+/**
+ * Application for Robolectric tests: a synchronous test WorkManager, in-memory secrets (there is
+ * no Android Keystore in Robolectric) and a cheap Argon2 cost.
+ */
 class TestSyncerApp : SyncerApp() {
+    override fun createContainer() = AppContainer(this, InMemorySecretStore(), Kdbx.KdfParams(memoryBytes = 1024 * 1024, iterations = 1, parallelism = 1))
+
     override fun onCreate() {
         WorkManagerTestInitHelper.initializeTestWorkManager(
             this,
             Configuration.Builder().setMinimumLoggingLevel(Log.DEBUG).setExecutor(SynchronousExecutor()).build(),
         )
         super.onCreate()
+    }
+}
+
+class InMemorySecretStore : SecretStore {
+    private val values = mutableMapOf<String, String>()
+    override fun get(key: String) = values[key]
+    override fun put(key: String, value: String?) {
+        if (value == null) values.remove(key) else values[key] = value
     }
 }
 

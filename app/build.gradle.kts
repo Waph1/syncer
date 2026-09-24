@@ -23,8 +23,8 @@ android {
         applicationId = "io.github.waph1.syncer"
         minSdk = 26
         targetSdk = 37
-        versionCode = 2
-        versionName = "1.1.0"
+        versionCode = 3
+        versionName = "1.2.0"
     }
 
     signingConfigs {
@@ -65,8 +65,11 @@ android {
     }
 
     lint {
-        // Le stringhe sono in italiano: niente traduzioni obbligatorie.
+        // Le stringhe sono in italiano: niente traduzioni obbligatorie, né controllo ortografico inglese.
         disable += "MissingTranslation"
+        disable += "Typos"
+        // Only the credential transfer (providerevents) is used, not Credential Manager sign-in.
+        disable += "CredentialDependency"
     }
 }
 
@@ -89,6 +92,9 @@ dependencies {
     implementation(libs.androidx.work.runtime.ktx)
     implementation(libs.play.services.auth)
     implementation(libs.kotlinx.serialization.json)
+    implementation(libs.bouncycastle.prov)
+    implementation(libs.androidx.credentials.providerevents)
+    implementation(libs.androidx.credentials.providerevents.play.services)
     debugImplementation(libs.androidx.compose.ui.tooling)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
 

@@ -11,6 +11,8 @@
     <string name="type_tasks_format">Un file todo.txt per ogni elenco</string>
     <string name="type_notes_format">Un file Markdown (.md) per ogni nota</string>
     <string name="type_contacts_format">Tutti i contatti in un file .vcf</string>
+    <string name="type_passwords">Password (Google)</string>
+    <string name="type_passwords_format">Database KeePass (.kdbx) cifrato, aggiornato quando importi</string>
 
     <!-- Common actions -->
     <string name="action_back">Indietro</string>
@@ -30,6 +32,11 @@
     <string name="action_backup_now">Backup ora</string>
     <string name="action_copy">Copia package e SHA-1</string>
     <string name="action_restart_setup">Rifai configurazione</string>
+    <string name="action_set">Imposta</string>
+    <string name="action_delete">Elimina</string>
+    <string name="action_keep">Conserva</string>
+    <string name="action_import_passwords">Importa dal Gestore password di Google</string>
+    <string name="action_import_passwords_csv">Importa da file CSV</string>
 
     <!-- Folders -->
     <string name="folder_destination">Cartella di destinazione</string>
@@ -58,6 +65,27 @@
     <string name="notes_source_api_hint">Solo per account Google Workspace con l\'API Keep abilitata dall\'amministratore. Sincronizzazione automatica.</string>
     <string name="notes_takeout_folder">Cartella degli export Takeout</string>
     <string name="notes_takeout_folder_hint">Scarica da takeout.google.com l\'export di \"Keep\" e salva lo zip (o la cartella estratta) qui: a ogni sincronizzazione viene usato l\'export più recente.</string>
+
+    <!-- Passwords -->
+    <string name="passwords_folder">Cartella del database</string>
+    <string name="passwords_db_password">Password del database</string>
+    <string name="passwords_db_password_set">Impostata (salvata cifrata nel Keystore del telefono)</string>
+    <string name="passwords_db_password_missing">Non impostata</string>
+    <string name="passwords_hint">Google non permette di leggere le password in automatico: ogni importazione la confermi tu. \"Importa dal Gestore password di Google\" usa il trasferimento sicuro di Android (nessun file in chiaro); in alternativa puoi importare il CSV esportato dal Gestore password. Il file \"Password Google.kdbx\" (KeePass 4, AES-256 + Argon2id) si apre con KeePassDX, KeePassXC e simili. La password del database non viene mai inclusa nei backup delle impostazioni. Le passkey non vengono esportate.</string>
+    <string name="passwords_dialog_set">Password del database</string>
+    <string name="passwords_dialog_change">Cambia password del database</string>
+    <string name="passwords_current">Password attuale</string>
+    <string name="passwords_new">Nuova password</string>
+    <string name="passwords_confirm">Conferma la nuova password</string>
+    <string name="passwords_mismatch">Le password non coincidono</string>
+    <string name="passwords_show">Mostra le password</string>
+    <string name="passwords_forgot">Ho dimenticato la password attuale</string>
+    <string name="passwords_forgot_text">Il database già esportato resterà cifrato con la vecchia password finché non importi di nuovo le password: la nuova sarà usata da quel momento.</string>
+    <string name="passwords_delete_csv_title">Eliminare il file CSV?</string>
+    <string name="passwords_delete_csv_text">Il file CSV contiene tutte le password in chiaro. Le password sono ora nel database cifrato: è consigliabile eliminarlo.</string>
+    <string name="passwords_never_imported">Nessuna importazione ancora</string>
+    <string name="passwords_last_import">Ultima importazione %1$s</string>
+    <string name="passwords_last_import_failed">Importazione non riuscita %1$s</string>
 
     <!-- Sync options -->
     <string name="sync_on_change">Sincronizza alla modifica</string>
@@ -159,6 +187,11 @@
     <string name="notification_title_folder">%1$s: cartella non accessibile</string>
     <string name="notification_title_error">%1$s: sincronizzazione non riuscita</string>
 
+    <plurals name="passwords_min_length">
+        <item quantity="one">Almeno %1$d carattere. Se la dimentichi il database non si può aprire.</item>
+        <item quantity="many">Almeno %1$d caratteri. Se la dimentichi il database non si può aprire.</item>
+        <item quantity="other">Almeno %1$d caratteri. Se la dimentichi il database non si può aprire.</item>
+    </plurals>
     <plurals name="calendar_events_on_device">
         <item quantity="one">%1$d evento sul telefono</item>
         <item quantity="many">%1$d eventi sul telefono</item>

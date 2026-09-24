@@ -35,6 +35,12 @@ data class AppSettings(
     val tasks: FolderTarget = FolderTarget(),
     val notes: FolderTarget = FolderTarget(),
     val contacts: FolderTarget = FolderTarget(),
+    /**
+     * Google Password Manager → KeePass database folder. Passwords are imported on demand (the
+     * user confirms each transfer), not synced periodically. The database password is kept in the
+     * Android Keystore, never in the settings or their backups.
+     */
+    val passwords: FolderTarget = FolderTarget(),
     val notesSource: NotesSource = NotesSource.TAKEOUT,
     /** Folder where Google Takeout exports of Keep are placed. */
     val takeoutFolderUri: String? = null,

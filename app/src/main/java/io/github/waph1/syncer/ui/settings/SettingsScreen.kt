@@ -46,6 +46,7 @@ import io.github.waph1.syncer.ui.components.AccessEditor
 import io.github.waph1.syncer.ui.components.BackupEditor
 import io.github.waph1.syncer.ui.components.CalendarSelection
 import io.github.waph1.syncer.ui.components.HintText
+import io.github.waph1.syncer.ui.components.PasswordsEditor
 import io.github.waph1.syncer.ui.components.SectionHeader
 import io.github.waph1.syncer.ui.components.SyncOptionsEditor
 import io.github.waph1.syncer.ui.components.TargetsEditor
@@ -100,6 +101,8 @@ fun SettingsScreen(vm: MainViewModel, onBack: () -> Unit, onRestartSetup: () -> 
 
             SectionHeader(stringResource(R.string.section_data))
             TargetsEditor(settings, vm::update, pickFolder) { CalendarSelection(vm, settings, vm::update) }
+            Spacer(Modifier.height(12.dp))
+            PasswordsEditor(vm, settings, vm::update, pickFolder, showImportActions = true)
 
             SectionHeader(stringResource(R.string.section_sync))
             SyncOptionsEditor(settings, vm::update)

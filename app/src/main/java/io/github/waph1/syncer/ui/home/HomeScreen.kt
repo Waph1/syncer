@@ -14,6 +14,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountCircle
+import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Card
@@ -50,6 +51,7 @@ import io.github.waph1.syncer.storage.SafFolder
 import io.github.waph1.syncer.sync.Problem
 import io.github.waph1.syncer.sync.TypeStatus
 import io.github.waph1.syncer.ui.MainViewModel
+import io.github.waph1.syncer.ui.components.PasswordImportActions
 import io.github.waph1.syncer.ui.components.formatInterval
 import io.github.waph1.syncer.ui.components.icon
 import io.github.waph1.syncer.ui.components.label
@@ -128,7 +130,8 @@ fun HomeScreen(vm: MainViewModel, onOpenSettings: () -> Unit) {
                     onSync = { vm.syncNow(setOf(type)) },
                 )
             }
-            if (settings.enabledTypes().isEmpty()) {
+            if (settings.passwords.enabled) PasswordsCard(vm, settings, status.passwords)
+            if (settings.enabledTypes().isEmpty() && !settings.passwords.enabled) {
                 Text(stringResource(R.string.home_nothing_enabled), style = MaterialTheme.typography.bodyMedium)
             }
             Spacer(Modifier.size(72.dp))
@@ -223,6 +226,43 @@ private fun TypeCard(
                     }
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun PasswordsCard(vm: MainViewModel, settings: AppSettings, status: TypeStatus?) {
+    val busy by vm.passwordBusy.collectAsStateWithLifecycle()
+    Card(
+        colors = CardDefaults.cardColors(
+            containerColor = if (status?.ok == false) MaterialTheme.colorScheme.errorContainer else MaterialTheme.colorScheme.surfaceContainerLow,
+        ),
+    ) {
+        Column(Modifier.fillMaxWidth().padding(16.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(Icons.Filled.Lock, null, tint = MaterialTheme.colorScheme.primary)
+                Spacer(Modifier.width(12.dp))
+                Column(Modifier.weight(1f)) {
+                    Text(stringResource(R.string.type_passwords), style = MaterialTheme.typography.titleMedium)
+                    Text(
+                        SafFolder.describe(settings.passwords.folderUri) ?: stringResource(R.string.folder_not_selected),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                if (busy) CircularProgressIndicator(Modifier.size(24.dp), strokeWidth = 2.dp)
+            }
+            Spacer(Modifier.size(8.dp))
+            if (status?.lastRunAt == null) {
+                Text(stringResource(R.string.passwords_never_imported), style = MaterialTheme.typography.bodySmall)
+            } else {
+                Text(
+                    stringResource(if (status.ok) R.string.passwords_last_import else R.string.passwords_last_import_failed, relative(status.lastRunAt)),
+                    style = MaterialTheme.typography.labelMedium,
+                )
+                Text(status.message, style = MaterialTheme.typography.bodySmall)
+            }
+            PasswordImportActions(vm)
         }
     }
 }

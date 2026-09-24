@@ -3,11 +3,15 @@ package io.github.waph1.syncer
 import android.app.Application
 import android.content.Context
 import android.util.Log
+import io.github.waph1.syncer.format.Kdbx
+import io.github.waph1.syncer.security.KeystoreSecretStore
+import io.github.waph1.syncer.security.SecretStore
 import io.github.waph1.syncer.settings.AppSettings
 import io.github.waph1.syncer.settings.SettingsBackup
 import io.github.waph1.syncer.settings.SettingsRepository
 import io.github.waph1.syncer.source.GoogleAuth
 import io.github.waph1.syncer.sync.Notifier
+import io.github.waph1.syncer.sync.PasswordVault
 import io.github.waph1.syncer.sync.StatusRepository
 import io.github.waph1.syncer.sync.SyncEngine
 import io.github.waph1.syncer.sync.SyncScheduler
@@ -19,7 +23,11 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 
 /** Manual dependency container, one per process. */
-class AppContainer(private val context: Context) {
+class AppContainer(
+    private val context: Context,
+    secrets: SecretStore = KeystoreSecretStore(context),
+    kdfParams: Kdbx.KdfParams = Kdbx.KdfParams(),
+) {
     val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     val settings = SettingsRepository(context)
     val status = StatusRepository(context)
@@ -28,6 +36,7 @@ class AppContainer(private val context: Context) {
     val scheduler = SyncScheduler(context)
     val engine = SyncEngine(context, settings, status, auth, notifier)
     val backup = SettingsBackup(context)
+    val vault = PasswordVault(context, settings, status, secrets, kdfParams)
     private val backupMutex = Mutex()
 
     init {
@@ -57,9 +66,11 @@ open class SyncerApp : Application() {
     lateinit var container: AppContainer
         private set
 
+    protected open fun createContainer() = AppContainer(this)
+
     override fun onCreate() {
         super.onCreate()
-        container = AppContainer(this)
+        container = createContainer()
         container.notifier.createChannel()
         container.scheduler.apply(container.settings.current)
     }

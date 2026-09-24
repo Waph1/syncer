@@ -11,7 +11,7 @@ class SyncWorker(context: Context, params: WorkerParameters) : CoroutineWorker(c
     override suspend fun doWork(): Result {
         val container = applicationContext.appContainer
         val reason = inputData.getString(KEY_REASON)
-        val types = inputData.getStringArray(KEY_TYPES)
+        val types = inputData.getNullableStringArray(KEY_TYPES)
             ?.mapNotNull { name -> SyncType.entries.firstOrNull { it.name == name } }
             ?.toSet()
             ?: SyncType.entries.toSet()

@@ -56,6 +56,8 @@ import io.github.waph1.syncer.ui.components.AccessEditor
 import io.github.waph1.syncer.ui.components.BackupEditor
 import io.github.waph1.syncer.ui.components.CalendarSelection
 import io.github.waph1.syncer.ui.components.HintText
+import io.github.waph1.syncer.ui.components.PasswordsEditor
+import io.github.waph1.syncer.ui.components.passwordsReady
 import io.github.waph1.syncer.ui.components.SyncOptionsEditor
 import io.github.waph1.syncer.ui.components.TargetsEditor
 import io.github.waph1.syncer.ui.components.folderReady
@@ -102,7 +104,10 @@ fun SetupScreen(vm: MainViewModel, onCancel: (() -> Unit)?, onFinished: () -> Un
     // also makes it visible to the app.
     val accountOk = draft.accountName != null &&
         (accountConfirmed || (saved.setupCompleted && draft.accountName == saved.accountName))
-    val dataOk = draft.enabledTypes().isNotEmpty() && SyncType.entries.all { draft.folderReady(context, it) }
+    val hasDatabasePassword by vm.hasDatabasePassword.collectAsStateWithLifecycle()
+    val dataOk = (draft.enabledTypes().isNotEmpty() || draft.passwords.enabled) &&
+        SyncType.entries.all { draft.folderReady(context, it) } &&
+        draft.passwordsReady(context, hasDatabasePassword)
     val backupOk = !draft.settingsBackupEnabled || SafFolder.hasPermission(context, draft.settingsBackupFolderUri)
     val canContinue = when (step) {
         Step.ACCOUNT -> accountOk
@@ -192,6 +197,8 @@ fun SetupScreen(vm: MainViewModel, onCancel: (() -> Unit)?, onFinished: () -> Un
                     HintText(stringResource(R.string.setup_data_intro))
                     Spacer(Modifier.height(8.dp))
                     TargetsEditor(draft, vm::editDraft, pickFolder) { CalendarSelection(vm, draft, vm::editDraft) }
+                    Spacer(Modifier.height(12.dp))
+                    PasswordsEditor(vm, draft, vm::editDraft, pickFolder, showImportActions = false)
                     if (!dataOk) {
                         Spacer(Modifier.height(8.dp))
                         Text(

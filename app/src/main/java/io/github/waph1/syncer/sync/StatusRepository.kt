@@ -30,6 +30,8 @@ data class StatusSnapshot(
     val lastBackupError: String? = null,
     /** Identity of the last processed Takeout export, to skip unchanged exports. */
     val takeoutSignature: String? = null,
+    /** Last import of Google passwords into the KeePass database. */
+    val passwords: TypeStatus? = null,
 )
 
 /** Last sync results (persisted) and currently running syncs (in memory). */
@@ -59,6 +61,11 @@ class StatusRepository(context: Context) {
     fun recordBackup(fileName: String?, error: String?) = edit { s ->
         if (error == null) s.copy(lastBackupAt = System.currentTimeMillis(), lastBackupFile = fileName, lastBackupError = null)
         else s.copy(lastBackupError = error)
+    }
+
+    fun recordPasswords(ok: Boolean, message: String) = edit { s ->
+        val now = System.currentTimeMillis()
+        s.copy(passwords = TypeStatus(now, if (ok) now else s.passwords?.lastSuccessAt, ok, message, if (ok) null else Problem.CONFIGURATION))
     }
 
     fun setTakeoutSignature(signature: String?) = edit { it.copy(takeoutSignature = signature) }

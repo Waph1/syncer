@@ -1,8 +1,11 @@
 package io.github.waph1.syncer.ui
 
+import android.app.Activity
 import android.app.Application
 import android.app.PendingIntent
 import android.net.Uri
+import android.provider.DocumentsContract
+import androidx.credentials.providerevents.exception.ImportCredentialsException
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import io.github.waph1.syncer.appContainer
@@ -10,6 +13,9 @@ import io.github.waph1.syncer.settings.AppSettings
 import io.github.waph1.syncer.settings.SyncType
 import io.github.waph1.syncer.source.AuthorizationRequiredException
 import io.github.waph1.syncer.source.CalendarSource
+import io.github.waph1.syncer.source.GooglePasswordTransfer
+import io.github.waph1.syncer.source.GooglePasswordsCsv
+import io.github.waph1.syncer.sync.VaultException
 import io.github.waph1.syncer.sync.StatusSnapshot
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.Channel
@@ -50,6 +56,15 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     private val calendarState = MutableStateFlow<List<CalendarStatus>?>(null)
     /** Calendars of the account on the device; null while loading or without permission. */
     val calendars: StateFlow<List<CalendarStatus>?> = calendarState.asStateFlow()
+
+    /** True while the KeePass database is being encrypted (Argon2 takes a few seconds). */
+    private val passwordBusyState = MutableStateFlow(false)
+    val passwordBusy: StateFlow<Boolean> = passwordBusyState.asStateFlow()
+    val hasDatabasePassword: StateFlow<Boolean> = container.vault.hasPassword
+
+    /** CSV just imported, which the user is asked to delete (it holds passwords in clear). */
+    private val csvToDeleteState = MutableStateFlow<Uri?>(null)
+    val csvToDelete: StateFlow<Uri?> = csvToDeleteState.asStateFlow()
 
     private val messageChannel = Channel<String>(Channel.BUFFERED)
     val messages = messageChannel.receiveAsFlow()
@@ -105,6 +120,59 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
             else "Impossibile attivare la sincronizzazione di \"${calendar.name}\"",
         )
         refreshCalendars(account)
+    }
+
+    fun importPasswordsFromGoogle(activity: Activity) = passwordJob {
+        container.vault.checkReady()
+        val entries = try {
+            GooglePasswordTransfer.import(activity)
+        } catch (e: ImportCredentialsException) {
+            throw VaultException(GooglePasswordTransfer.describe(e))
+        } ?: return@passwordJob "Importazione annullata"
+        container.vault.save(entries, "Gestore password di Google")
+    }
+
+    fun importPasswordsFromCsv(uri: Uri) = passwordJob {
+        container.vault.checkReady()
+        val text = withContext(Dispatchers.IO) {
+            getApplication<Application>().contentResolver.openInputStream(uri)?.use { it.readBytes().toString(Charsets.UTF_8) }
+        } ?: throw VaultException("Impossibile leggere il file")
+        val entries = try {
+            GooglePasswordsCsv.parse(text)
+        } catch (e: IllegalArgumentException) {
+            throw VaultException(e.message.orEmpty())
+        }
+        container.vault.save(entries, "file CSV").also { csvToDeleteState.value = uri }
+    }
+
+    fun deleteImportedCsv(delete: Boolean) {
+        val uri = csvToDeleteState.value ?: return
+        csvToDeleteState.value = null
+        if (!delete) return
+        viewModelScope.launch {
+            val deleted = withContext(Dispatchers.IO) {
+                runCatching { DocumentsContract.deleteDocument(getApplication<Application>().contentResolver, uri) }.getOrDefault(false)
+            }
+            message(if (deleted) "File CSV eliminato" else "Non è stato possibile eliminare il file CSV: eliminalo a mano")
+        }
+    }
+
+    fun changeDatabasePassword(current: String?, new: String) = passwordJob { container.vault.changePassword(current, new) }
+
+    fun resetDatabasePassword(new: String) = passwordJob { container.vault.resetPassword(new) }
+
+    private fun passwordJob(block: suspend () -> String) = viewModelScope.launch {
+        if (passwordBusyState.value) return@launch
+        passwordBusyState.value = true
+        try {
+            message(block())
+        } catch (e: VaultException) {
+            message(e.message.orEmpty())
+        } catch (e: Exception) {
+            message("Errore: ${e.message ?: e.javaClass.simpleName}")
+        } finally {
+            passwordBusyState.value = false
+        }
     }
 
     /** Checks (without UI) whether a token for [scope] can be obtained for [account]. */

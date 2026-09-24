@@ -10,6 +10,7 @@ di calendario o rubrica):
 | **Contatti** | contatti dell'account Google sul telefono | un unico `Contatti.vcf` (vCard 3.0) | pochi secondi dopo ogni modifica, più l'intervallo periodico |
 | **Attività** | Google Tasks (API ufficiale) | un file `<elenco>.todo.txt` per elenco (formato todo.txt) | ogni N minuti (minimo 15) |
 | **Note** | Google Keep: export di Google Takeout (account personali) oppure API di Keep (solo Google Workspace) | un file `.md` per nota, allegati in `attachments/` | ogni N minuti, appena trovi un nuovo export |
+| **Password** | Gestore password di Google (trasferimento sicuro di Android, oppure file CSV) | un database KeePass `Password Google.kdbx` cifrato | quando importi (Google richiede la tua conferma ogni volta) |
 
 La sincronizzazione è **a senso unico** (Google → file): le modifiche fatte ai file non vengono
 rimandate a Google.
@@ -70,6 +71,33 @@ due origini:
 Le librerie non ufficiali che leggono Keep con credenziali "master" dell'account violano i termini
 di Google e possono far bloccare l'account: per questo non sono state usate.
 
+## Password di Google → database KeePass
+
+Google non permette alle app di leggere le password salvate in automatico, quindi ogni
+importazione va confermata da te. Il risultato è il file `Password Google.kdbx` (KeePass 4:
+AES-256 con chiave derivata da Argon2id), che si apre con KeePassDX, KeePassXC, KeePass2Android,
+Strongbox e simili.
+
+- **Importa dal Gestore password di Google** (consigliato). Usa il trasferimento sicuro delle
+  credenziali di Android (standard FIDO Credential Exchange): Android mostra le app che possono
+  esportare, scegli *Gestore password di Google* e confermi. Le password passano direttamente a
+  Syncer, cifrate, senza creare file in chiaro. Serve Google Play services aggiornato: la funzione
+  è stata distribuita da giugno 2026.
+- **Importa da file CSV** (alternativa). Dal Gestore password di Google (*Impostazioni › Esporta
+  password*) salvi un CSV e lo scegli in Syncer. Dopo la conversione Syncer propone di eliminare
+  il CSV, che contiene tutte le password in chiaro.
+
+Ogni importazione sostituisce il database con il contenuto attuale del Gestore password. Le note
+delle password vanno nel campo Note e le app Android nel campo `AndroidApp` (utile all'autofill di
+KeePassDX). Le passkey non vengono esportate.
+
+**La password del database** si imposta in *Impostazioni › Password (Google)*. Viene salvata solo
+sul telefono, cifrata con una chiave del Keystore Android, e **non finisce mai nei backup delle
+impostazioni**: dopo un'importazione su un altro telefono va reinserita. Per cambiarla serve
+quella attuale, e il database esistente viene ricifrato con la nuova. Se l'hai dimenticata puoi
+impostarne una nuova: il file già esportato resta con la vecchia password fino alla prossima
+importazione. Se una trasmissione non contiene password, il database esistente non viene toccato.
+
 ## Configurare Google Cloud (necessario per Google Tasks)
 
 Calendari, contatti e note da Takeout funzionano **senza** questa configurazione. Google Tasks (e
@@ -101,7 +129,7 @@ L'autorizzazione usa l'account già presente sul telefono tramite Google Play se
 
 ## Installare l'APK pronto
 
-Nella cartella [`apk/`](apk/) c'è `Syncer-1.1.0.apk`, già compilato e firmato: copialo sul
+Nella cartella [`apk/`](apk/) c'è `Syncer-1.2.0.apk`, già compilato e firmato: copialo sul
 telefono e aprilo (Android chiederà di consentire l'installazione da quella app). Per Google Tasks
 registra su Google Cloud (vedi la sezione sopra) l'impronta del suo certificato:
 
@@ -237,11 +265,12 @@ un'importazione la configurazione guidata ti chiede di confermare le cartelle da
 
 ```
 app/src/main/java/io/github/waph1/syncer/
-├── format/     # scrittori puri: IcsWriter, VCardWriter, TodoTxtWriter, MarkdownWriter, FileNames
-├── source/     # lettura dati: CalendarContract, ContactsContract, Tasks API, Keep API/Takeout, auth
+├── format/     # scrittori puri: IcsWriter, VCardWriter, TodoTxtWriter, MarkdownWriter, Kdbx (KeePass)
+├── source/     # lettura dati: CalendarContract, ContactsContract, Tasks API, Keep, password (CXF/CSV)
+├── security/   # password del database KeePass nel Keystore Android
 ├── storage/    # cartelle SAF (SafFolder) e scrittura incrementale con manifest (ManagedFolder)
 ├── settings/   # AppSettings, persistenza, backup/import JSON
-├── sync/       # SyncEngine, SyncWorker, SyncScheduler (WorkManager), stato e notifiche
+├── sync/       # SyncEngine, SyncWorker, SyncScheduler (WorkManager), PasswordVault, stato e notifiche
 └── ui/         # Compose: configurazione guidata, home, impostazioni
 ```
 

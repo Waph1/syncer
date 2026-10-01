@@ -68,6 +68,13 @@ class CalendarSelectionTest {
         compose.onNodeWithContentDescription("Impostazioni").performClick()
 
         compose.onNodeWithText("Calendari da esportare").performScrollTo().assertIsDisplayed()
+        // The calendars are read on a background thread: wait for them in real time.
+        val deadline = System.currentTimeMillis() + 10_000
+        while (compose.onAllNodesWithText("Sincronizzato · 2 eventi sul telefono").fetchSemanticsNodes().isEmpty()) {
+            check(System.currentTimeMillis() < deadline) { "Calendars not loaded" }
+            Thread.sleep(20)
+            compose.waitForIdle()
+        }
         compose.onNodeWithText("Sincronizzato · 2 eventi sul telefono").performScrollTo().assertIsDisplayed()
         compose.onNodeWithText("Sincronizzazione Android disattivata · 0 eventi sul telefono · nascosto").performScrollTo().assertIsDisplayed()
 

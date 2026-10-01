@@ -10,7 +10,8 @@ di calendario o rubrica):
 | **Contatti** | contatti dell'account Google sul telefono | un unico `Contatti.vcf` (vCard 3.0) | pochi secondi dopo ogni modifica, più l'intervallo periodico |
 | **Attività** | Google Tasks (API ufficiale) | un file `<elenco>.todo.txt` per elenco (formato todo.txt) | ogni N minuti (minimo 15) |
 | **Note** | Google Keep: export di Google Takeout (account personali) oppure API di Keep (solo Google Workspace) | un file `.md` per nota, allegati in `attachments/` | ogni N minuti, appena trovi un nuovo export |
-| **Password** | Gestore password di Google (trasferimento sicuro di Android, oppure file CSV) | un database KeePass `Password Google.kdbx` cifrato | quando importi (Google richiede la tua conferma ogni volta) |
+| **Password** | Gestore password di Google (trasferimento sicuro di Android, oppure file CSV) | un database KeePass `Password Google.kdbx` cifrato | quando importi (Google richiede la tua conferma ogni volta), con un promemoria periodico facoltativo |
+| **Playlist YouTube** | playlist pubbliche, private o *Guarda più tardi*, scaricate con yt-dlp | un video (o solo audio) per elemento, `<titolo> [<id>].mp4`, una cartella per playlist | con la frequenza che scegli (minimo 15 minuti) |
 
 La sincronizzazione è **a senso unico** (Google → file): le modifiche fatte ai file non vengono
 rimandate a Google.
@@ -33,6 +34,9 @@ rimandate a Google.
 - Schermata principale con stato di ogni sincronizzazione, pulsante *Sincronizza ora* e azioni
   rapide per risolvere i problemi (permesso mancante, autorizzazione, cartella non accessibile).
 - Notifica quando una sincronizzazione ha bisogno di te.
+- **Promemoria di backup delle password** con frequenza scritta liberamente (da 1 ora a 1 anno).
+- **Playlist YouTube** copiate in locale, con qualità a scelta e copia a senso unico (aggiunte ed
+  eliminazioni).
 
 ## Come funziona la sincronizzazione
 
@@ -98,6 +102,71 @@ quella attuale, e il database esistente viene ricifrato con la nuova. Se l'hai d
 impostarne una nuova: il file già esportato resta con la vecchia password fino alla prossima
 importazione. Se una trasmissione non contiene password, il database esistente non viene toccato.
 
+**Promemoria di backup.** Visto che l'importazione non può essere automatica, in *Impostazioni ›
+Password (Google) › Promemoria di backup* puoi farti ricordare di ripeterla. La frequenza si scrive
+liberamente, da 1 ora a 1 anno: `2 settimane`, `1 mese e mezzo`, `36 ore`, `3 mesi`, `1 anno`
+(un mese vale 30 giorni, un anno 365); l'app mostra subito come l'ha interpretata e la data del
+prossimo promemoria. Il conteggio riparte da ogni importazione riuscita (o dall'ultimo promemoria):
+la notifica ha il pulsante **Importa ora**, che apre direttamente il trasferimento dal Gestore
+password.
+
+## Playlist YouTube
+
+In *Impostazioni › Dati e cartelle › Playlist YouTube* aggiungi le playlist da copiare sul telefono,
+ognuna con la sua cartella e la sua qualità:
+
+- **Guarda più tardi** e **Una delle mie playlist** (comprese private e salvate) richiedono
+  l'accesso a YouTube;
+- **Da link**: qualunque playlist pubblica o non in elenco (incolla il link di condivisione).
+
+La copia è **a senso unico**: i video aggiunti alla playlist vengono scaricati (`<titolo>
+[<id>].mp4`, oppure `.m4a`/`.mp3` per le opzioni solo audio), quelli tolti dalla playlist vengono
+eliminati dalla cartella. Syncer elimina solo i file che ha scaricato lui (elencati in un manifest
+privato); se nella cartella c'è già un file con l'id del video nel nome viene riutilizzato invece
+di essere riscaricato. Per sicurezza una playlist che risulta vuota svuota la cartella solo se è
+ancora vuota al controllo successivo, e un video presente in due playlist che usano la stessa
+cartella non viene eliminato finché resta nell'altra. I video privati o eliminati da YouTube ma
+ancora in playlist restano nella cartella. Il cambio di qualità vale per i nuovi download.
+
+**Qualità**: migliore disponibile, 4K, 2K, 1080p, 720p, 480p, 360p (il limite vale sul lato corto,
+quindi funziona anche per i video verticali), solo audio M4A o MP3. Fino a 1080p viene preferito
+H.264 + AAC in MP4, il più compatibile; sopra YouTube offre solo VP9/AV1, sempre unito in MP4.
+
+**Quando**: YouTube non avvisa le app quando una playlist cambia, quindi Syncer la controlla con la
+frequenza che scrivi tu (da 15 minuti, il minimo di Android, a 1 anno; predefinito `6 ore`). Il
+controllo senza novità è leggero; con *Scarica solo con Wi-Fi* (predefinito) i controlli automatici
+avvengono su reti non a consumo e, se avvii la sincronizzazione a mano sulla rete mobile, i nuovi
+video attendono il Wi-Fi. Quando c'è da scaricare compare una notifica di avanzamento: il lavoro
+diventa un servizio in primo piano, così i download lunghi non vengono interrotti dopo i 10 minuti
+concessi da Android al lavoro in background (se Android lo nega perché l'app è in background con
+l'ottimizzazione batteria attiva, il download riprende al controllo successivo: per le playlist
+lunghe conviene disattivarla in *Permessi e autorizzazioni*).
+
+**yt-dlp**: i video vengono scaricati da [yt-dlp](https://github.com/yt-dlp/yt-dlp) incluso
+nell'app (con Python, QuickJS per le verifiche JavaScript di YouTube e FFmpeg per unire audio e
+video, tramite [youtubedl-android](https://github.com/yausername/youtubedl-android)). Siccome
+YouTube cambia spesso, yt-dlp si aggiorna da solo una volta al giorno dalle release ufficiali su
+GitHub (oppure con *Aggiorna* nelle impostazioni).
+
+**Accesso a YouTube** (serve per *Guarda più tardi*, per le playlist private e quando YouTube
+chiede di confermare che non sei un bot). Due modi:
+
+1. *Accedi*: si apre la pagina di accesso di Google; appena l'accesso a YouTube è completato
+   Syncer salva i cookie di youtube.com e cancella quelli della pagina, così la sessione non viene
+   più usata (né rinnovata) dal browser interno.
+2. *Importa un file cookies.txt*, se Google non consente l'accesso dall'app: da un browser in cui
+   hai effettuato l'accesso a YouTube esporta i cookie in formato Netscape (per esempio con
+   un'estensione "cookies.txt"; yt-dlp consiglia una finestra anonima, chiusa subito dopo
+   l'esportazione) e scegli il file. Syncer propone poi di eliminarlo.
+
+In entrambi i casi Syncer conserva **solo i cookie di youtube.com**, cifrati con il Keystore
+Android, mai nei backup delle impostazioni; li scrive in un file temporaneo privato solo mentre
+yt-dlp è in esecuzione. La documentazione di yt-dlp avverte che Google potrebbe considerare
+sospetto un uso automatico intenso dell'account.
+
+> Scarica solo contenuti che hai il diritto di salvare: i Termini di servizio di YouTube non
+> consentono il download fuori dalle sue app, salvo dove YouTube lo permette esplicitamente.
+
 ## Configurare Google Cloud (necessario per Google Tasks)
 
 Calendari, contatti e note da Takeout funzionano **senza** questa configurazione. Google Tasks (e
@@ -129,9 +198,13 @@ L'autorizzazione usa l'account già presente sul telefono tramite Google Play se
 
 ## Installare l'APK pronto
 
-Nella cartella [`apk/`](apk/) c'è `Syncer-1.2.0.apk`, già compilato e firmato: copialo sul
-telefono e aprilo (Android chiederà di consentire l'installazione da quella app). Per Google Tasks
-registra su Google Cloud (vedi la sezione sopra) l'impronta del suo certificato:
+Nella cartella [`apk/`](apk/) c'è `Syncer-1.3.0-arm64-v8a.apk`, già compilato e firmato, per
+telefoni ARM a 64 bit (praticamente tutti quelli degli ultimi anni): copialo sul telefono e aprilo
+(Android chiederà di consentire l'installazione da quella app); si installa sopra le versioni
+precedenti mantenendo le impostazioni. Dalla 1.3.0 l'APK pesa circa 57 MB perché include yt-dlp,
+Python e FFmpeg; gli APK per le altre architetture (`armeabi-v7a`, `x86_64`) sono tra gli artefatti
+di GitHub Actions. Per Google Tasks registra su Google Cloud (vedi la sezione sopra) l'impronta del
+suo certificato:
 
 ```
 SHA-1: F3:06:6B:4F:94:DC:84:7C:8B:37:99:02:66:85:9C:F4:40:02:70:48
@@ -168,7 +241,8 @@ keyAlias=syncer
 keyPassword=…
 ```
 
-Poi `./gradlew assembleRelease` → `app/build/outputs/apk/release/app-release.apk`.
+Poi `./gradlew assembleRelease` → `app/build/outputs/apk/release/app-<architettura>-release.apk`
+(un APK per architettura: yt-dlp porta con sé librerie native di circa 50 MB ciascuna).
 
 ### GitHub Actions
 
@@ -260,6 +334,11 @@ un'importazione la configurazione guidata ti chiede di confermare le cartelle da
   sincronizzazione Google di Android (vedi l'elenco in *Impostazioni › Dati e cartelle › Calendari*).
 - Le foto dei contatti sono le miniature salvate sul telefono.
 - Esportazione a senso unico: modificare i file non modifica i dati su Google.
+- Le password non si possono importare in automatico (lo impedisce Google): c'è il promemoria.
+- Le playlist YouTube vengono controllate periodicamente (YouTube non notifica le modifiche) e il
+  download dipende da yt-dlp, che segue i cambiamenti di YouTube con gli aggiornamenti automatici.
+  L'accesso dall'app alla pagina di Google può essere rifiutato: in quel caso usa il file
+  cookies.txt.
 
 ## Struttura del progetto
 
@@ -267,10 +346,11 @@ un'importazione la configurazione guidata ti chiede di confermare le cartelle da
 app/src/main/java/io/github/waph1/syncer/
 ├── format/     # scrittori puri: IcsWriter, VCardWriter, TodoTxtWriter, MarkdownWriter, Kdbx (KeePass)
 ├── source/     # lettura dati: CalendarContract, ContactsContract, Tasks API, Keep, password (CXF/CSV)
-├── security/   # password del database KeePass nel Keystore Android
+├── security/   # segreti (password KeePass, cookie YouTube) cifrati con il Keystore Android
 ├── storage/    # cartelle SAF (SafFolder) e scrittura incrementale con manifest (ManagedFolder)
 ├── settings/   # AppSettings, persistenza, backup/import JSON
-├── sync/       # SyncEngine, SyncWorker, SyncScheduler (WorkManager), PasswordVault, stato e notifiche
+├── sync/       # SyncEngine, SyncWorker, SyncScheduler (WorkManager), PasswordVault, promemoria, stato e notifiche
+├── youtube/    # playlist: yt-dlp (YtDlpBackend), copia a senso unico (PlaylistSync), accesso a YouTube
 └── ui/         # Compose: configurazione guidata, home, impostazioni
 ```
 
@@ -282,5 +362,13 @@ app/src/main/java/io/github/waph1/syncer/
 
 Oltre ai test dei singoli formati, i test Robolectric eseguono l'intero flusso con provider di
 calendario, contatti e cartelle simulati (esportazione, aggiornamento solo se cambiato,
-eliminazione dei file obsoleti, Takeout → Markdown, backup con timestamp) e percorrono l'interfaccia
-dalla configurazione guidata fino alla schermata principale.
+eliminazione dei file obsoleti, Takeout → Markdown, backup con timestamp, copia delle playlist con
+un yt-dlp simulato, promemoria delle password) e percorrono l'interfaccia dalla configurazione
+guidata fino alla schermata principale.
+
+## Licenze di terze parti
+
+Dalla versione 1.3.0 l'app include [youtubedl-android](https://github.com/yausername/youtubedl-android)
+(GPL-3.0), [yt-dlp](https://github.com/yt-dlp/yt-dlp) (Unlicense), Python, QuickJS e FFmpeg. Chi
+distribuisce l'APK deve rispettarne le licenze (per la GPL-3.0: rendere disponibile il codice
+sorgente dell'app con la stessa licenza).

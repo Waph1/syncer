@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
 
     <!-- Google Tasks / Keep REST APIs -->
     <uses-permission android:name="android.permission.INTERNET" />
@@ -9,8 +10,11 @@
     <!-- Only to turn on Android's sync of a calendar on request ("Attiva sincronizzazione") -->
     <uses-permission android:name="android.permission.WRITE_CALENDAR" />
     <uses-permission android:name="android.permission.READ_CONTACTS" />
-    <!-- Alerts when a sync needs the user (permission, authorization, folder) -->
+    <!-- Alerts when a sync needs the user, password reminders, download progress -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- Long YouTube downloads run as a WorkManager foreground service -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
 
     <application
         android:name=".SyncerApp"
@@ -33,5 +37,16 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <activity
+            android:name=".youtube.YouTubeLoginActivity"
+            android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize|keyboardHidden"
+            android:exported="false"
+            android:windowSoftInputMode="adjustResize" />
+
+        <service
+            android:name="androidx.work.impl.foreground.SystemForegroundService"
+            android:foregroundServiceType="dataSync"
+            tools:node="merge" />
     </application>
 </manifest>

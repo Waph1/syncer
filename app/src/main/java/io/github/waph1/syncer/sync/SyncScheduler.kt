@@ -12,8 +12,10 @@ import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.workDataOf
+import io.github.waph1.syncer.format.DurationText
 import io.github.waph1.syncer.settings.AppSettings
 import io.github.waph1.syncer.settings.SyncType
+import io.github.waph1.syncer.youtube.PlaylistWorker
 import java.time.Duration
 import java.util.concurrent.TimeUnit
 
@@ -22,7 +24,9 @@ import java.util.concurrent.TimeUnit
  * - calendars and contacts: a job triggered by changes in the Calendar/Contacts providers
  *   (JobScheduler content-URI triggers, no background service needed), re-armed after each run;
  * - everything: a periodic job every N minutes (minimum 15, an Android limit), also the only
- *   option for Google Tasks and Keep, which offer no change notifications.
+ *   option for Google Tasks and Keep, which offer no change notifications;
+ * - YouTube playlists: their own periodic job (YouTube does not notify playlist changes), only
+ *   on Wi-Fi if so chosen.
  */
 class SyncScheduler(context: Context) {
     private val workManager = WorkManager.getInstance(context)
@@ -51,7 +55,35 @@ class SyncScheduler(context: Context) {
                 workManager.cancelUniqueWork(observerName(type))
             }
         }
+
+        val youtube = settings.youtube
+        if (settings.setupCompleted && youtube.enabled && youtube.playlists.isNotEmpty()) {
+            val every = DurationText.durationOf(youtube.every, DurationText.FIFTEEN_MINUTES, DurationText.ONE_YEAR)
+                ?: DEFAULT_PLAYLIST_INTERVAL
+            val request = PeriodicWorkRequestBuilder<PlaylistWorker>(every.toMinutes(), TimeUnit.MINUTES)
+                .setConstraints(playlistConstraints(youtube.wifiOnly))
+                .addTag(TAG)
+                .build()
+            workManager.enqueueUniquePeriodicWork(YOUTUBE_PERIODIC, ExistingPeriodicWorkPolicy.UPDATE, request)
+        } else {
+            workManager.cancelUniqueWork(YOUTUBE_PERIODIC)
+            workManager.cancelUniqueWork(YOUTUBE_MANUAL)
+        }
     }
+
+    /** Checks the playlists now (downloads wait for Wi-Fi if so chosen: the sync says so). */
+    fun syncPlaylistsNow() {
+        val request = OneTimeWorkRequestBuilder<PlaylistWorker>()
+            .setConstraints(playlistConstraints(wifiOnly = false))
+            .addTag(TAG)
+            .build()
+        workManager.enqueueUniqueWork(YOUTUBE_MANUAL, ExistingWorkPolicy.KEEP, request)
+    }
+
+    private fun playlistConstraints(wifiOnly: Boolean) = Constraints.Builder()
+        .setRequiredNetworkType(if (wifiOnly) NetworkType.UNMETERED else NetworkType.CONNECTED)
+        .setRequiresStorageNotLow(true)
+        .build()
 
     /** Called by the observer job itself when it finishes, to wait for the next change. */
     fun rearmObserver(type: SyncType, settings: AppSettings) {
@@ -101,10 +133,13 @@ class SyncScheduler(context: Context) {
 
     private fun observerName(type: SyncType) = "observer-${type.name.lowercase()}"
 
-    private companion object {
-        const val TAG = "syncer"
-        const val PERIODIC = "periodic-sync"
-        const val MANUAL = "manual-sync"
-        val OBSERVED = listOf(SyncType.CALENDAR, SyncType.CONTACTS)
+    companion object {
+        private const val TAG = "syncer"
+        private const val PERIODIC = "periodic-sync"
+        private const val MANUAL = "manual-sync"
+        private const val YOUTUBE_PERIODIC = "youtube-periodic"
+        private const val YOUTUBE_MANUAL = "youtube-manual"
+        val DEFAULT_PLAYLIST_INTERVAL: Duration = Duration.ofHours(6)
+        private val OBSERVED = listOf(SyncType.CALENDAR, SyncType.CONTACTS)
     }
 }

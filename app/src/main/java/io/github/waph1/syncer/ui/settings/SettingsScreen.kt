@@ -50,6 +50,7 @@ import io.github.waph1.syncer.ui.components.PasswordsEditor
 import io.github.waph1.syncer.ui.components.SectionHeader
 import io.github.waph1.syncer.ui.components.SyncOptionsEditor
 import io.github.waph1.syncer.ui.components.TargetsEditor
+import io.github.waph1.syncer.ui.components.YouTubeEditor
 import io.github.waph1.syncer.ui.components.rememberAccountPicker
 import io.github.waph1.syncer.ui.components.rememberFolderPicker
 import io.github.waph1.syncer.ui.components.withPickedFolder
@@ -103,6 +104,8 @@ fun SettingsScreen(vm: MainViewModel, onBack: () -> Unit, onRestartSetup: () -> 
             TargetsEditor(settings, vm::update, pickFolder) { CalendarSelection(vm, settings, vm::update) }
             Spacer(Modifier.height(12.dp))
             PasswordsEditor(vm, settings, vm::update, pickFolder, showImportActions = true)
+            Spacer(Modifier.height(12.dp))
+            YouTubeEditor(vm, settings, pickFolder)
 
             SectionHeader(stringResource(R.string.section_sync))
             SyncOptionsEditor(settings, vm::update)

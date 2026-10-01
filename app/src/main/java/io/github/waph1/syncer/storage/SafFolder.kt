@@ -7,6 +7,7 @@ import android.net.Uri
 import android.provider.DocumentsContract
 import android.provider.DocumentsContract.Document
 import androidx.core.net.toUri
+import java.io.File
 import java.io.FileNotFoundException
 import java.io.IOException
 import java.io.InputStream
@@ -96,6 +97,14 @@ class SafFolder private constructor(
             // "wt" truncates: plain "w" leaves trailing garbage on some providers.
             resolver.openOutputStream(uri, "wt")?.use { it.write(bytes) }
                 ?: throw FolderAccessException("Impossibile scrivere il file")
+        }
+    }
+
+    /** Copies [source] into the document [uri], streaming (for files too large for memory). */
+    fun writeFrom(uri: Uri, source: File) {
+        guard {
+            val out = resolver.openOutputStream(uri, "wt") ?: throw FolderAccessException("Impossibile scrivere il file")
+            out.use { stream -> source.inputStream().use { it.copyTo(stream, 256 * 1024) } }
         }
     }
 

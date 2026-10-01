@@ -10,13 +10,20 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import io.github.waph1.syncer.appContainer
 import io.github.waph1.syncer.settings.AppSettings
+import io.github.waph1.syncer.settings.PlaylistTarget
 import io.github.waph1.syncer.settings.SyncType
+import io.github.waph1.syncer.settings.VideoQuality
 import io.github.waph1.syncer.source.AuthorizationRequiredException
 import io.github.waph1.syncer.source.CalendarSource
 import io.github.waph1.syncer.source.GooglePasswordTransfer
 import io.github.waph1.syncer.source.GooglePasswordsCsv
 import io.github.waph1.syncer.sync.VaultException
+import io.github.waph1.syncer.sync.PlaylistProgress
 import io.github.waph1.syncer.sync.StatusSnapshot
+import io.github.waph1.syncer.youtube.PlaylistInfo
+import io.github.waph1.syncer.youtube.PlaylistSync
+import io.github.waph1.syncer.youtube.VideoException
+import io.github.waph1.syncer.youtube.YtDlp
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -29,6 +36,14 @@ import kotlinx.coroutines.withContext
 
 /** A calendar of the account as stored on the device, with its number of events. */
 data class CalendarStatus(val ref: CalendarSource.CalendarRef, val events: Int)
+
+/** "Le mie playlist" in the add-playlist dialog. */
+sealed interface MyPlaylists {
+    data object Idle : MyPlaylists
+    data object Loading : MyPlaylists
+    data class Loaded(val playlists: List<PlaylistInfo>) : MyPlaylists
+    data class Failed(val message: String) : MyPlaylists
+}
 
 /** Result of checking access to a Google API scope. */
 sealed interface AuthState {
@@ -66,6 +81,21 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     private val csvToDeleteState = MutableStateFlow<Uri?>(null)
     val csvToDelete: StateFlow<Uri?> = csvToDeleteState.asStateFlow()
 
+    val playlistRunning: StateFlow<Boolean> = container.status.playlistRunning
+    val playlistProgress: StateFlow<PlaylistProgress?> = container.status.playlistProgress
+    val youtubeSignedIn: StateFlow<Boolean> = container.youtubeAccount.signedIn
+
+    /** True while a YouTube action of the settings runs (checking a link, updating yt-dlp...). */
+    private val youtubeBusyState = MutableStateFlow(false)
+    val youtubeBusy: StateFlow<Boolean> = youtubeBusyState.asStateFlow()
+
+    private val myPlaylistsState = MutableStateFlow<MyPlaylists>(MyPlaylists.Idle)
+    val myPlaylists: StateFlow<MyPlaylists> = myPlaylistsState.asStateFlow()
+
+    /** cookies.txt just imported, which the user is asked to delete (it holds a session). */
+    private val cookiesToDeleteState = MutableStateFlow<Uri?>(null)
+    val cookiesToDelete: StateFlow<Uri?> = cookiesToDeleteState.asStateFlow()
+
     private val messageChannel = Channel<String>(Channel.BUFFERED)
     val messages = messageChannel.receiveAsFlow()
 
@@ -84,7 +114,103 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
 
     fun syncNow(types: Set<SyncType> = SyncType.entries.toSet()) {
         container.scheduler.syncNow(types)
+        if (settings.value.youtube.enabled && settings.value.youtube.playlists.isNotEmpty()) container.scheduler.syncPlaylistsNow()
         message("Sincronizzazione avviata")
+    }
+
+    fun syncPlaylistsNow() {
+        container.scheduler.syncPlaylistsNow()
+        message("Controllo delle playlist avviato")
+    }
+
+    /** Time of the next password reminder, if any. */
+    fun nextPasswordReminder(settings: AppSettings, status: StatusSnapshot): Long? = container.reminder.nextDue(settings, status)
+
+    fun youtubeSignedIn() = message("Accesso a YouTube effettuato")
+
+    fun signOutYouTube() {
+        container.youtubeAccount.signOut()
+        myPlaylistsState.value = MyPlaylists.Idle
+        message("Accesso a YouTube rimosso")
+    }
+
+    fun importYouTubeCookies(uri: Uri) = youtubeJob {
+        val text = withContext(Dispatchers.IO) {
+            getApplication<Application>().contentResolver.openInputStream(uri)?.use { it.readBytes().toString(Charsets.UTF_8) }
+        } ?: throw VideoException("Impossibile leggere il file")
+        try {
+            container.youtubeAccount.saveCookies(text)
+        } catch (e: IllegalArgumentException) {
+            throw VideoException(e.message.orEmpty())
+        }
+        cookiesToDeleteState.value = uri
+        "Accesso a YouTube importato dal file"
+    }
+
+    fun deleteImportedCookies(delete: Boolean) {
+        val uri = cookiesToDeleteState.value ?: return
+        cookiesToDeleteState.value = null
+        if (!delete) return
+        viewModelScope.launch {
+            val deleted = withContext(Dispatchers.IO) {
+                runCatching { DocumentsContract.deleteDocument(getApplication<Application>().contentResolver, uri) }.getOrDefault(false)
+            }
+            message(if (deleted) "File dei cookie eliminato" else "Non è stato possibile eliminare il file: eliminalo a mano")
+        }
+    }
+
+    fun loadMyPlaylists() {
+        if (myPlaylistsState.value == MyPlaylists.Loading) return
+        myPlaylistsState.value = MyPlaylists.Loading
+        viewModelScope.launch {
+            myPlaylistsState.value = try {
+                MyPlaylists.Loaded(container.playlists.myPlaylists())
+            } catch (e: VideoException) {
+                MyPlaylists.Failed(e.message.orEmpty())
+            } catch (e: Exception) {
+                MyPlaylists.Failed(e.message ?: e.javaClass.simpleName)
+            }
+        }
+    }
+
+    /** Adds a playlist (if not already there) and returns it; the caller then asks for its folder. */
+    fun addPlaylist(id: String, title: String): PlaylistTarget {
+        settings.value.youtube.playlists.firstOrNull { it.id == id }?.let { return it }
+        val target = PlaylistTarget(id = id, title = if (id == PlaylistTarget.WATCH_LATER) PlaylistSync.WATCH_LATER_TITLE else title)
+        update { it.copy(youtube = it.youtube.copy(playlists = it.youtube.playlists + target)) }
+        return target
+    }
+
+    /** Checks a pasted link with YouTube, then adds the playlist and calls [onAdded]. */
+    fun addPlaylistFromLink(link: String, onAdded: (PlaylistTarget) -> Unit) = youtubeJob {
+        val id = YtDlp.playlistIdFrom(link) ?: throw VideoException("Link non valido: copia il link di condivisione della playlist")
+        val listing = container.playlists.lookup(id)
+        val target = addPlaylist(id, listing.title.ifBlank { id })
+        onAdded(target)
+        "Playlist \"${target.title}\" aggiunta (${listing.entries.size} video): scegli la cartella"
+    }
+
+    fun removePlaylist(id: String) =
+        update { it.copy(youtube = it.youtube.copy(playlists = it.youtube.playlists.filterNot { p -> p.id == id })) }
+
+    fun setPlaylistQuality(id: String, quality: VideoQuality) = update {
+        it.copy(youtube = it.youtube.copy(playlists = it.youtube.playlists.map { p -> if (p.id == id) p.copy(quality = quality) else p }))
+    }
+
+    fun updateYtDlp() = youtubeJob { container.playlists.updateDownloader() }
+
+    private fun youtubeJob(block: suspend () -> String) = viewModelScope.launch {
+        if (youtubeBusyState.value) return@launch
+        youtubeBusyState.value = true
+        try {
+            message(block())
+        } catch (e: VideoException) {
+            message(e.message.orEmpty())
+        } catch (e: Exception) {
+            message("Errore: ${e.message ?: e.javaClass.simpleName}")
+        } finally {
+            youtubeBusyState.value = false
+        }
     }
 
     fun message(text: String) {

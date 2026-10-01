@@ -23,8 +23,24 @@ android {
         applicationId = "io.github.waph1.syncer"
         minSdk = 26
         targetSdk = 37
-        versionCode = 3
-        versionName = "1.2.0"
+        versionCode = 4
+        versionName = "1.3.0"
+    }
+
+    // yt-dlp brings Python and FFmpeg as native libraries (~50 MB per architecture): one APK per
+    // architecture instead of a universal one of ~200 MB.
+    splits {
+        abi {
+            isEnable = true
+            reset()
+            include("arm64-v8a", "armeabi-v7a", "x86_64")
+            isUniversalApk = false
+        }
+    }
+
+    packaging {
+        // youtubedl-android runs Python/FFmpeg from the extracted native library folder.
+        jniLibs.useLegacyPackaging = true
     }
 
     signingConfigs {
@@ -95,6 +111,8 @@ dependencies {
     implementation(libs.bouncycastle.prov)
     implementation(libs.androidx.credentials.providerevents)
     implementation(libs.androidx.credentials.providerevents.play.services)
+    implementation(libs.youtubedl.android.library)
+    implementation(libs.youtubedl.android.ffmpeg)
     debugImplementation(libs.androidx.compose.ui.tooling)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
 

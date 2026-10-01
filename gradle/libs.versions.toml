@@ -12,6 +12,7 @@ serializationJson = "1.11.0"
 junit = "4.13.2"
 bouncycastle = "1.86"
 providerEvents = "1.0.0-beta01"
+youtubedlAndroid = "0.18.1"
 robolectric = "4.17"
 androidxTestCore = "1.7.0"
 androidxTestJunit = "1.3.0"
@@ -34,6 +35,8 @@ junit = { group = "junit", name = "junit", version.ref = "junit" }
 bouncycastle-prov = { group = "org.bouncycastle", name = "bcprov-jdk18on", version.ref = "bouncycastle" }
 androidx-credentials-providerevents = { group = "androidx.credentials.providerevents", name = "providerevents", version.ref = "providerEvents" }
 androidx-credentials-providerevents-play-services = { group = "androidx.credentials.providerevents", name = "providerevents-play-services", version.ref = "providerEvents" }
+youtubedl-android-library = { group = "io.github.junkfood02.youtubedl-android", name = "library", version.ref = "youtubedlAndroid" }
+youtubedl-android-ffmpeg = { group = "io.github.junkfood02.youtubedl-android", name = "ffmpeg", version.ref = "youtubedlAndroid" }
 robolectric = { group = "org.robolectric", name = "robolectric", version.ref = "robolectric" }
 androidx-test-core = { group = "androidx.test", name = "core-ktx", version.ref = "androidxTestCore" }
 androidx-test-junit = { group = "androidx.test.ext", name = "junit-ktx", version.ref = "androidxTestJunit" }

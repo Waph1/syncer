@@ -16,6 +16,11 @@ import io.github.waph1.syncer.AppContainer
 import io.github.waph1.syncer.SyncerApp
 import io.github.waph1.syncer.format.Kdbx
 import io.github.waph1.syncer.security.SecretStore
+import io.github.waph1.syncer.settings.VideoQuality
+import io.github.waph1.syncer.youtube.PlaylistInfo
+import io.github.waph1.syncer.youtube.PlaylistListing
+import io.github.waph1.syncer.youtube.VideoBackend
+import io.github.waph1.syncer.youtube.VideoException
 import java.io.File
 
 /**
@@ -23,7 +28,12 @@ import java.io.File
  * no Android Keystore in Robolectric) and a cheap Argon2 cost.
  */
 class TestSyncerApp : SyncerApp() {
-    override fun createContainer() = AppContainer(this, InMemorySecretStore(), Kdbx.KdfParams(memoryBytes = 1024 * 1024, iterations = 1, parallelism = 1))
+    override fun createContainer() = AppContainer(
+        this,
+        InMemorySecretStore(),
+        Kdbx.KdfParams(memoryBytes = 1024 * 1024, iterations = 1, parallelism = 1),
+        FakeVideoBackend().also { FakeVideoBackend.current = it },
+    )
 
     override fun onCreate() {
         WorkManagerTestInitHelper.initializeTestWorkManager(
@@ -39,6 +49,46 @@ class InMemorySecretStore : SecretStore {
     override fun get(key: String) = values[key]
     override fun put(key: String, value: String?) {
         if (value == null) values.remove(key) else values[key] = value
+    }
+}
+
+/** yt-dlp stand-in: playlists and errors set by the test, "downloads" are small text files. */
+class FakeVideoBackend : VideoBackend {
+    val playlists = mutableMapOf<String, PlaylistListing>()
+    var myPlaylists = listOf<PlaylistInfo>()
+    /** Errors by video id; a needsSignIn error passes when cookies are given. */
+    val errors = mutableMapOf<String, VideoException>()
+    val downloads = mutableListOf<Pair<String, VideoQuality>>()
+    /** Cookie file content seen by each listing (null without cookies). */
+    val listingCookies = mutableListOf<String?>()
+    var updated: String? = null
+
+    override suspend fun version() = "2026.08.19"
+    override suspend fun update() = updated
+
+    override suspend fun listPlaylist(playlistId: String, cookies: File?): PlaylistListing {
+        listingCookies += cookies?.readText()
+        return playlists[playlistId] ?: throw VideoException("La playlist non esiste o è privata", needsSignIn = true)
+    }
+
+    override suspend fun listMyPlaylists(cookies: File) = myPlaylists
+
+    override suspend fun download(videoId: String, quality: VideoQuality, dir: File, cookies: File?, onProgress: (Float) -> Unit): File {
+        errors[videoId]?.let { if (cookies == null || !it.needsSignIn) throw it }
+        downloads += videoId to quality
+        onProgress(50f)
+        val extension = when (quality) {
+            VideoQuality.AUDIO_M4A -> "m4a"
+            VideoQuality.AUDIO_MP3 -> "mp3"
+            else -> "mp4"
+        }
+        dir.mkdirs()
+        return File(dir, "$videoId.$extension").apply { writeText("$videoId ${quality.name}") }
+    }
+
+    companion object {
+        /** The backend of the current test's application. */
+        lateinit var current: FakeVideoBackend
     }
 }
 

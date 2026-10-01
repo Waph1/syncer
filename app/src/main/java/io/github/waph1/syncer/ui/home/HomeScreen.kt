@@ -15,6 +15,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Card
@@ -24,6 +25,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
@@ -43,15 +45,19 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.waph1.syncer.R
+import io.github.waph1.syncer.format.DurationText
 import io.github.waph1.syncer.settings.AppSettings
 import io.github.waph1.syncer.settings.NotesSource
 import io.github.waph1.syncer.settings.SyncType
 import io.github.waph1.syncer.source.GoogleAuth
 import io.github.waph1.syncer.storage.SafFolder
 import io.github.waph1.syncer.sync.Problem
+import io.github.waph1.syncer.sync.StatusSnapshot
+import io.github.waph1.syncer.sync.SyncScheduler
 import io.github.waph1.syncer.sync.TypeStatus
 import io.github.waph1.syncer.ui.MainViewModel
 import io.github.waph1.syncer.ui.components.PasswordImportActions
+import io.github.waph1.syncer.ui.components.describeEvery
 import io.github.waph1.syncer.ui.components.formatInterval
 import io.github.waph1.syncer.ui.components.icon
 import io.github.waph1.syncer.ui.components.label
@@ -131,7 +137,8 @@ fun HomeScreen(vm: MainViewModel, onOpenSettings: () -> Unit) {
                 )
             }
             if (settings.passwords.enabled) PasswordsCard(vm, settings, status.passwords)
-            if (settings.enabledTypes().isEmpty() && !settings.passwords.enabled) {
+            if (settings.youtube.enabled) YouTubeCard(vm, settings, status, onOpenSettings)
+            if (settings.enabledTypes().isEmpty() && !settings.passwords.enabled && !settings.youtube.enabled) {
                 Text(stringResource(R.string.home_nothing_enabled), style = MaterialTheme.typography.bodyMedium)
             }
             Spacer(Modifier.size(72.dp))
@@ -263,6 +270,83 @@ private fun PasswordsCard(vm: MainViewModel, settings: AppSettings, status: Type
                 Text(status.message, style = MaterialTheme.typography.bodySmall)
             }
             PasswordImportActions(vm)
+        }
+    }
+}
+
+@Composable
+private fun YouTubeCard(vm: MainViewModel, settings: AppSettings, status: StatusSnapshot, onOpenSettings: () -> Unit) {
+    val running by vm.playlistRunning.collectAsStateWithLifecycle()
+    val progress by vm.playlistProgress.collectAsStateWithLifecycle()
+    val youtube = settings.youtube
+    val failed = youtube.playlists.any { status.playlists[it.id]?.ok == false }
+    Card(
+        colors = CardDefaults.cardColors(
+            containerColor = if (failed) MaterialTheme.colorScheme.errorContainer else MaterialTheme.colorScheme.surfaceContainerLow,
+        ),
+    ) {
+        Column(Modifier.fillMaxWidth().padding(16.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(Icons.Filled.PlayArrow, null, tint = MaterialTheme.colorScheme.primary)
+                Spacer(Modifier.width(12.dp))
+                Column(Modifier.weight(1f)) {
+                    Text(stringResource(R.string.type_youtube), style = MaterialTheme.typography.titleMedium)
+                    val every = describeEvery(youtube.every, DurationText.FIFTEEN_MINUTES, DurationText.ONE_YEAR, SyncScheduler.DEFAULT_PLAYLIST_INTERVAL)
+                    Text(
+                        if (youtube.wifiOnly) stringResource(R.string.youtube_schedule_wifi, every) else every,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                if (running) {
+                    CircularProgressIndicator(Modifier.size(24.dp), strokeWidth = 2.dp)
+                } else if (youtube.playlists.isNotEmpty()) {
+                    IconButton(onClick = vm::syncPlaylistsNow) {
+                        Icon(Icons.Filled.Refresh, stringResource(R.string.action_sync_type, stringResource(R.string.type_youtube)))
+                    }
+                }
+            }
+            if (youtube.playlists.isEmpty()) {
+                Spacer(Modifier.size(8.dp))
+                Text(stringResource(R.string.youtube_no_playlists), style = MaterialTheme.typography.bodySmall)
+            }
+            for (playlist in youtube.playlists) {
+                val playlistStatus = status.playlists[playlist.id]
+                Spacer(Modifier.size(8.dp))
+                Text(playlistStatus?.title ?: playlist.title, style = MaterialTheme.typography.labelLarge)
+                val current = progress?.takeIf { it.playlistId == playlist.id }
+                when {
+                    current != null -> {
+                        Text(
+                            stringResource(R.string.youtube_downloading, current.index, current.total, current.videoTitle),
+                            style = MaterialTheme.typography.bodySmall,
+                        )
+                        val percent = current.percent
+                        if (percent == null) LinearProgressIndicator(Modifier.fillMaxWidth().padding(vertical = 4.dp))
+                        else LinearProgressIndicator(progress = { percent / 100f }, modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp))
+                    }
+                    playlist.folderUri == null -> Text(
+                        stringResource(R.string.folder_not_selected),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.error,
+                    )
+                    playlistStatus?.lastRunAt == null -> Text(stringResource(R.string.home_never_synced), style = MaterialTheme.typography.bodySmall)
+                    else -> {
+                        Text(
+                            stringResource(
+                                if (playlistStatus.ok) R.string.youtube_last_check else R.string.youtube_last_check_failed,
+                                relative(playlistStatus.lastRunAt),
+                            ),
+                            style = MaterialTheme.typography.labelMedium,
+                        )
+                        Text(playlistStatus.message, style = MaterialTheme.typography.bodySmall)
+                    }
+                }
+                val problem = playlistStatus?.problem
+                if (current == null && (playlist.folderUri == null || (playlistStatus?.ok == false && problem != null && problem != Problem.TRANSIENT))) {
+                    TextButton(onClick = onOpenSettings) { Text(stringResource(R.string.action_open_settings)) }
+                }
+            }
         }
     }
 }

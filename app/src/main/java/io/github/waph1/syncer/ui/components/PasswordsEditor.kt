@@ -1,5 +1,8 @@
 package io.github.waph1.syncer.ui.components
 
+import android.Manifest
+import android.os.Build
+import android.text.format.DateUtils
 import androidx.activity.compose.LocalActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -31,6 +34,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
@@ -39,9 +43,12 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.waph1.syncer.R
+import io.github.waph1.syncer.format.DurationText
 import io.github.waph1.syncer.settings.AppSettings
 import io.github.waph1.syncer.storage.SafFolder
 import io.github.waph1.syncer.ui.MainViewModel
+import io.github.waph1.syncer.util.Permissions
+import java.time.Duration
 
 /** True when passwords are off, or have a writable folder and a database password. */
 fun AppSettings.passwordsReady(context: android.content.Context, hasDatabasePassword: Boolean): Boolean =
@@ -94,6 +101,7 @@ fun PasswordsEditor(
                         Text(stringResource(if (hasPassword) R.string.action_change else R.string.action_set))
                     }
                 }
+                ReminderEditor(vm, settings, onChange, showNextDue = showImportActions)
                 if (busy) LinearProgressIndicator(Modifier.fillMaxWidth().padding(vertical = 4.dp))
                 HintText(stringResource(R.string.passwords_hint))
                 if (showImportActions) PasswordImportActions(vm)
@@ -106,6 +114,51 @@ fun PasswordsEditor(
             onDismiss = { showDialog = false },
             onChange = { current, new -> showDialog = false; vm.changeDatabasePassword(current, new) },
             onReset = { new -> showDialog = false; vm.resetDatabasePassword(new) },
+        )
+    }
+}
+
+/** Periodic notification reminding to import the passwords again (Google allows no automatic export). */
+@Composable
+private fun ReminderEditor(
+    vm: MainViewModel,
+    settings: AppSettings,
+    onChange: ((AppSettings) -> AppSettings) -> Unit,
+    showNextDue: Boolean,
+) {
+    val context = LocalContext.current
+    val status by vm.status.collectAsStateWithLifecycle()
+    val requestPermissions = rememberPermissionRequester()
+    val reminder = settings.passwordReminder
+    SwitchRow(
+        title = stringResource(R.string.reminder_enabled),
+        subtitle = stringResource(R.string.reminder_enabled_hint),
+        checked = reminder.enabled,
+        onCheckedChange = { on ->
+            onChange { it.copy(passwordReminder = it.passwordReminder.copy(enabled = on)) }
+            if (on && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+                !Permissions.granted(context, Manifest.permission.POST_NOTIFICATIONS)
+            ) {
+                requestPermissions(listOf(Manifest.permission.POST_NOTIFICATIONS))
+            }
+        },
+    )
+    if (reminder.enabled) {
+        val next = if (showNextDue) vm.nextPasswordReminder(settings, status) else null
+        DurationRow(
+            title = stringResource(R.string.reminder_every),
+            value = reminder.every,
+            min = DurationText.ONE_HOUR,
+            max = DurationText.ONE_YEAR,
+            fallback = Duration.ofDays(30),
+            examples = stringResource(R.string.reminder_examples),
+            onChange = { every -> onChange { it.copy(passwordReminder = it.passwordReminder.copy(every = every)) } },
+            detail = next?.let {
+                stringResource(
+                    R.string.reminder_next,
+                    DateUtils.formatDateTime(context, it, DateUtils.FORMAT_SHOW_DATE or DateUtils.FORMAT_SHOW_YEAR or DateUtils.FORMAT_SHOW_TIME),
+                )
+            },
         )
     }
 }

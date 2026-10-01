@@ -13,6 +13,8 @@
     <string name="type_contacts_format">Tutti i contatti in un file .vcf</string>
     <string name="type_passwords">Password (Google)</string>
     <string name="type_passwords_format">Database KeePass (.kdbx) cifrato, aggiornato quando importi</string>
+    <string name="type_youtube">Playlist YouTube</string>
+    <string name="type_youtube_format">Video scaricati con yt-dlp, una cartella per playlist</string>
 
     <!-- Common actions -->
     <string name="action_back">Indietro</string>
@@ -37,6 +39,14 @@
     <string name="action_keep">Conserva</string>
     <string name="action_import_passwords">Importa dal Gestore password di Google</string>
     <string name="action_import_passwords_csv">Importa da file CSV</string>
+    <string name="action_import_now">Importa ora</string>
+    <string name="action_add">Aggiungi</string>
+    <string name="action_add_playlist">Aggiungi playlist</string>
+    <string name="action_remove">Rimuovi</string>
+    <string name="action_update">Aggiorna</string>
+    <string name="action_sign_in">Accedi</string>
+    <string name="action_sign_out">Esci</string>
+    <string name="action_import_cookies">Importa un file cookies.txt</string>
 
     <!-- Folders -->
     <string name="folder_destination">Cartella di destinazione</string>
@@ -86,6 +96,65 @@
     <string name="passwords_never_imported">Nessuna importazione ancora</string>
     <string name="passwords_last_import">Ultima importazione %1$s</string>
     <string name="passwords_last_import_failed">Importazione non riuscita %1$s</string>
+    <string name="reminder_enabled">Promemoria di backup</string>
+    <string name="reminder_enabled_hint">Una notifica ti ricorda di importare di nuovo le password, contando dall\'ultima importazione</string>
+    <string name="reminder_every">Frequenza del promemoria</string>
+    <string name="reminder_examples">Scrivi liberamente, da 1 ora a 1 anno: \"2 settimane\", \"1 mese e mezzo\", \"36 ore\", \"3 mesi\", \"1 anno\".</string>
+    <string name="reminder_next">Prossimo promemoria: %1$s</string>
+    <string name="reminder_title">Backup delle password</string>
+    <string name="reminder_text">Ultima importazione il %1$s: aggiorna il database KeePass con le password di Google.</string>
+    <string name="reminder_text_never">Non hai ancora importato le password di Google nel database KeePass.</string>
+    <string name="duration_label">Ogni</string>
+
+    <!-- YouTube -->
+    <string name="youtube_playlists">Playlist sincronizzate</string>
+    <string name="youtube_no_playlists">Nessuna playlist: aggiungine una.</string>
+    <string name="youtube_account">Account YouTube</string>
+    <string name="youtube_signed_in">Accesso effettuato</string>
+    <string name="youtube_signed_out">Accesso non effettuato</string>
+    <string name="youtube_account_hint">L\'accesso serve per \"Guarda più tardi\", per le playlist private e quando YouTube chiede di confermare che non sei un bot. Syncer conserva solo i cookie di youtube.com, cifrati sul telefono e mai nei backup delle impostazioni. Se Google non consente l\'accesso dall\'app, esporta i cookie di youtube.com dal browser in un file cookies.txt e importalo. Secondo yt-dlp, Google potrebbe considerare sospetto un uso automatico intenso dell\'account.</string>
+    <string name="youtube_delete_cookies_title">Eliminare il file dei cookie?</string>
+    <string name="youtube_delete_cookies_text">Il file contiene la sessione del tuo account: chi lo ottiene può usare YouTube come te. Ora è salvato cifrato nell\'app: è consigliabile eliminarlo.</string>
+    <string name="youtube_quality">Qualità</string>
+    <string name="quality_best">Migliore disponibile</string>
+    <string name="quality_2160">4K (2160p)</string>
+    <string name="quality_1440">2K (1440p)</string>
+    <string name="quality_1080">Full HD (1080p)</string>
+    <string name="quality_720">HD (720p)</string>
+    <string name="quality_480">480p</string>
+    <string name="quality_360">360p</string>
+    <string name="quality_audio_m4a">Solo audio (M4A)</string>
+    <string name="quality_audio_mp3">Solo audio (MP3)</string>
+    <string name="youtube_every">Controlla le playlist</string>
+    <string name="youtube_every_examples">YouTube non avvisa le app quando una playlist cambia: Syncer la controlla con questa frequenza, da 15 minuti (limite di Android) a 1 anno. Esempi: \"30 minuti\", \"6 ore\", \"1 giorno\".</string>
+    <string name="youtube_wifi_only">Scarica solo con Wi-Fi</string>
+    <string name="youtube_wifi_only_hint">I controlli automatici avvengono su reti non a consumo; con la rete mobile i video attendono il Wi-Fi</string>
+    <string name="youtube_ytdlp">yt-dlp</string>
+    <string name="youtube_ytdlp_version">Versione %1$s · aggiornamenti controllati %2$s</string>
+    <string name="youtube_ytdlp_unknown">Non ancora avviato: si aggiorna da solo una volta al giorno</string>
+    <string name="youtube_hint">Copia a senso unico: i video aggiunti alla playlist vengono scaricati, quelli rimossi vengono eliminati dalla cartella (solo i file scaricati da Syncer). Il cambio di qualità vale per i nuovi download. Per i download lunghi in background disattiva l\'ottimizzazione batteria (Permessi e autorizzazioni). Scarica solo video che hai il diritto di salvare: i Termini di YouTube non consentono il download fuori dalle sue app.</string>
+    <string name="youtube_remove_title">Rimuovere \"%1$s\"?</string>
+    <string name="youtube_remove_text">La playlist non verrà più sincronizzata. I video già scaricati restano nella cartella.</string>
+    <string name="youtube_add_watch_later">Guarda più tardi</string>
+    <string name="youtube_add_watch_later_hint">La tua coda \"Guarda più tardi\"</string>
+    <string name="youtube_add_needs_sign_in">Richiede l\'accesso a YouTube</string>
+    <string name="youtube_add_already">Già aggiunta</string>
+    <string name="youtube_add_mine">Una delle mie playlist</string>
+    <string name="youtube_add_mine_hint">Comprese quelle private e quelle salvate</string>
+    <string name="youtube_add_mine_empty">Nessun\'altra playlist trovata</string>
+    <string name="youtube_add_link">Da link</string>
+    <string name="youtube_add_link_hint">Playlist pubbliche o non in elenco: incolla il link di condivisione</string>
+    <string name="youtube_add_link_label">Link della playlist</string>
+    <string name="youtube_add_link_invalid">Il link non contiene una playlist (manca \"list=\")</string>
+    <string name="youtube_schedule_wifi">%1$s · solo Wi-Fi</string>
+    <string name="youtube_downloading">Scaricamento %1$d di %2$d: %3$s</string>
+    <string name="youtube_last_check">Ultimo controllo %1$s</string>
+    <string name="youtube_last_check_failed">Controllo non riuscito %1$s</string>
+    <string name="youtube_notification_checking">Controllo delle playlist…</string>
+    <string name="youtube_notification_downloading">Video %1$d di %2$d · %3$s</string>
+    <string name="youtube_login_title">Accedi a YouTube</string>
+    <string name="youtube_login_hint">Accedi con il tuo account Google: appena l\'accesso a YouTube è completato la finestra si chiude da sola. Se Google non consente l\'accesso da qui, chiudi e usa \"Importa un file cookies.txt\".</string>
+    <string name="youtube_login_failed">Accesso non riuscito</string>
 
     <!-- Sync options -->
     <string name="sync_on_change">Sincronizza alla modifica</string>
@@ -125,7 +194,7 @@
     <string name="auth_hint">L\'autorizzazione usa l\'account del telefono: nessuna password viene salvata. Se compare \"App non registrata\", configura il client OAuth su Google Cloud con package e SHA-1 indicati in Impostazioni › Info.</string>
     <string name="battery_title">Ottimizzazione batteria</string>
     <string name="battery_ok">Disattivata per Syncer</string>
-    <string name="battery_hint">Facoltativo: disattivarla rende le sincronizzazioni periodiche più puntuali.</string>
+    <string name="battery_hint">Facoltativo: disattivarla rende le sincronizzazioni periodiche più puntuali e permette ai download delle playlist di continuare in background.</string>
 
     <!-- Setup -->
     <string name="setup_step_counter">Passo %1$d di %2$d</string>
@@ -186,6 +255,10 @@
     <string name="notification_title_permission">%1$s: permesso mancante</string>
     <string name="notification_title_folder">%1$s: cartella non accessibile</string>
     <string name="notification_title_error">%1$s: sincronizzazione non riuscita</string>
+    <string name="notification_channel_reminders">Promemoria</string>
+    <string name="notification_channel_reminders_description">Promemoria per il backup delle password</string>
+    <string name="notification_channel_downloads">Download delle playlist</string>
+    <string name="notification_channel_downloads_description">Avanzamento dei download dei video di YouTube</string>
 
     <plurals name="passwords_min_length">
         <item quantity="one">Almeno %1$d carattere. Se la dimentichi il database non si può aprire.</item>

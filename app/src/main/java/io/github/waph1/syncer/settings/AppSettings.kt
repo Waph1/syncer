@@ -24,6 +24,55 @@ data class FolderTarget(
     val folderUri: String? = null,
 )
 
+/** Periodic notification reminding to re-import the Google passwords. */
+@Serializable
+data class ReminderSettings(
+    val enabled: Boolean = false,
+    /** Free text parsed by [io.github.waph1.syncer.format.DurationText], between 1 hour and 1 year. */
+    val every: String = "1 mese",
+)
+
+/** Quality of the downloaded videos; the audio-only options save just the audio track. */
+@Serializable
+enum class VideoQuality(val height: Int?) {
+    @SerialName("best") BEST(null),
+    @SerialName("2160p") P2160(2160),
+    @SerialName("1440p") P1440(1440),
+    @SerialName("1080p") P1080(1080),
+    @SerialName("720p") P720(720),
+    @SerialName("480p") P480(480),
+    @SerialName("360p") P360(360),
+    @SerialName("audio_m4a") AUDIO_M4A(null),
+    @SerialName("audio_mp3") AUDIO_MP3(null),
+}
+
+/** A YouTube playlist mirrored into a folder. */
+@Serializable
+data class PlaylistTarget(
+    /** YouTube playlist id; [WATCH_LATER] for "Guarda più tardi". */
+    val id: String,
+    val title: String,
+    /** Storage Access Framework tree URI. */
+    val folderUri: String? = null,
+    val quality: VideoQuality = VideoQuality.P1080,
+) {
+    val isWatchLater: Boolean get() = id == WATCH_LATER
+
+    companion object {
+        const val WATCH_LATER = "WL"
+    }
+}
+
+@Serializable
+data class YouTubeSettings(
+    val enabled: Boolean = false,
+    val playlists: List<PlaylistTarget> = emptyList(),
+    /** How often playlists are checked (free text, at least 15 minutes: an Android limit). */
+    val every: String = "6 ore",
+    /** Download only on unmetered networks (Wi-Fi). */
+    val wifiOnly: Boolean = true,
+)
+
 @Serializable
 data class AppSettings(
     val setupCompleted: Boolean = false,
@@ -41,6 +90,9 @@ data class AppSettings(
      * Android Keystore, never in the settings or their backups.
      */
     val passwords: FolderTarget = FolderTarget(),
+    val passwordReminder: ReminderSettings = ReminderSettings(),
+    /** YouTube playlists downloaded with yt-dlp (one-way: additions and removals are mirrored). */
+    val youtube: YouTubeSettings = YouTubeSettings(),
     val notesSource: NotesSource = NotesSource.TAKEOUT,
     /** Folder where Google Takeout exports of Keep are placed. */
     val takeoutFolderUri: String? = null,

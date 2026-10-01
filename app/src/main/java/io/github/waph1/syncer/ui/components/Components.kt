@@ -258,13 +258,17 @@ fun HintText(text: String, modifier: Modifier = Modifier) {
 const val TARGET_TAKEOUT = "takeout"
 const val TARGET_BACKUP = "backup"
 const val TARGET_PASSWORDS = "passwords"
+const val TARGET_PLAYLIST_PREFIX = "playlist:"
 
 /** Applies a folder picked with [rememberFolderPicker] to the settings. */
 fun AppSettings.withPickedFolder(target: String, uri: String): AppSettings = when (target) {
     TARGET_TAKEOUT -> copy(takeoutFolderUri = uri)
     TARGET_BACKUP -> copy(settingsBackupFolderUri = uri)
     TARGET_PASSWORDS -> copy(passwords = passwords.copy(folderUri = uri))
-    else -> SyncType.entries.firstOrNull { it.name == target }
+    else -> if (target.startsWith(TARGET_PLAYLIST_PREFIX)) {
+        val id = target.removePrefix(TARGET_PLAYLIST_PREFIX)
+        copy(youtube = youtube.copy(playlists = youtube.playlists.map { if (it.id == id) it.copy(folderUri = uri) else it }))
+    } else SyncType.entries.firstOrNull { it.name == target }
         ?.let { withTarget(it, target(it).copy(folderUri = uri)) }
         ?: this
 }
